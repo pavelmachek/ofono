@@ -233,10 +233,11 @@ static gboolean setup_gobi(struct modem_info *modem)
 		}
 	}
 
+	DBG("qmi=%s net=%s mdm=%s gps=%s diag=%s", qmi, net, mdm, gps, diag);
+	
 	if (qmi == NULL || mdm == NULL || net == NULL)
 		return FALSE;
 
-	DBG("qmi=%s net=%s mdm=%s gps=%s diag=%s", qmi, net, mdm, gps, diag);
 
 	ofono_modem_set_string(modem->modem, "Device", qmi);
 	ofono_modem_set_string(modem->modem, "Modem", mdm);
@@ -1250,6 +1251,7 @@ static struct {
 	{ "cinterion",	setup_serial_modem	},
 	{ "nokiacdma",	setup_serial_modem	},
 	{ "sim900",	setup_serial_modem	},
+	{ "g1",		setup_serial_modem	},
 	{ "wavecom",	setup_wavecom		},
 	{ "tc65",	setup_tc65		},
 	{ "ehs6",	setup_ehs6		},
@@ -1578,8 +1580,6 @@ static struct {
 	{ "mbm",	"cdc_ether",	"0930"		},
 	{ "mbm",	"cdc_ncm",	"0930"		},
 	{ "hso",	"hso"				},
-	{ "gobi",	"qmi_wwan"			},
-	{ "gobi",	"qcserial"			},
 	{ "sierra",	"qmi_wwan",	"1199"		},
 	{ "sierra",	"qcserial",	"1199"		},
 	{ "sierra",	"sierra"			},
@@ -1602,6 +1602,8 @@ static struct {
 	{ "telit",	"cdc_acm",	"1bc7", "0021"	},
 	{ "telitqmi",	"qmi_wwan",	"1bc7", "1201"	},
 	{ "telitqmi",	"option",	"1bc7", "1201"	},
+	{ "telitqmi",	"qmi_wwan",	"22b8", "2a70"	},
+	{ "telitqmi",	"option",	"22b8", "2a70"	},
 	{ "nokia",	"option",	"0421", "060e"	},
 	{ "nokia",	"option",	"0421", "0623"	},
 	{ "samsung",	"option",	"04e8", "6889"	},
@@ -1717,10 +1719,12 @@ static void check_device(struct udev_device *device)
 			return;
 	}
 
+#if 0
 	if ((g_str_equal(bus, "usb") == TRUE) ||
 			(g_str_equal(bus, "usbmisc") == TRUE))
 		check_usb_device(device);
 	else
+#endif
 		add_serial_device(device);
 
 }
@@ -1749,14 +1753,17 @@ static gboolean create_modem(gpointer key, gpointer value, gpointer user_data)
 		if (g_str_equal(driver_list[i].name, modem->driver) == FALSE)
 			continue;
 
+		DBG("Attempting modem setup, driver %s", modem->driver);
 		if (driver_list[i].setup(modem) == TRUE) {
 			ofono_modem_set_string(modem->modem, "SystemPath",
 								syspath);
 			ofono_modem_register(modem->modem);
 			return FALSE;
 		}
+		DBG("Modem setup failed, driver %s", modem->driver);		
 	}
 
+	DBG("Modem setup failed or not in driver_list?");
 	return TRUE;
 }
 
