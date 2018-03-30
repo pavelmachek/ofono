@@ -97,20 +97,13 @@ static int g1_enable(struct ofono_modem *modem)
 
 	DBG("");
 
-	DBG("enabling G1 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-	
 	device = ofono_modem_get_string(modem, "Device");
-	//	if (device == NULL)
-	//	return -EINVAL;
-	device = "/dev/ttyUSB4";
-
-	DBG("");
+	if (device == NULL)
+		return -EINVAL;
 
 	channel = g_at_tty_open(device, NULL);
 	if (channel == NULL)
 		return -EIO;
-
-	DBG("");	
 
 	syntax = g_at_syntax_new_gsm_permissive();
 	chat = g_at_chat_new(channel, syntax);
