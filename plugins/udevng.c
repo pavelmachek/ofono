@@ -233,10 +233,11 @@ static gboolean setup_gobi(struct modem_info *modem)
 		}
 	}
 
+	DBG("qmi=%s net=%s mdm=%s gps=%s diag=%s", qmi, net, mdm, gps, diag);
+	
 	if (qmi == NULL || mdm == NULL || net == NULL)
 		return FALSE;
 
-	DBG("qmi=%s net=%s mdm=%s gps=%s diag=%s", qmi, net, mdm, gps, diag);
 
 	ofono_modem_set_string(modem->modem, "Device", qmi);
 	ofono_modem_set_string(modem->modem, "Modem", mdm);
@@ -1749,20 +1750,20 @@ static gboolean create_modem(gpointer key, gpointer value, gpointer user_data)
 		return TRUE;
 
 	for (i = 0; driver_list[i].name; i++) {
-	  DBG("comparing %s %s", driver_list[i].name, modem->driver);
 		if (g_str_equal(driver_list[i].name, modem->driver) == FALSE)
 			continue;
 
-		/* if (driver_list[i].setup(modem) == TRUE) */ {
+		DBG("Attempting modem setup, driver %s", modem->driver);
+		if (driver_list[i].setup(modem) == TRUE) {
 			ofono_modem_set_string(modem->modem, "SystemPath",
 								syspath);
 			ofono_modem_register(modem->modem);
-			DBG("create modem is okay?");
 			return FALSE;
 		}
+		DBG("Modem setup failed, driver %s", modem->driver);		
 	}
 
-	DBG("create modem is maybe not okay?");
+	DBG("Modem setup failed or not in driver_list?");
 	return TRUE;
 }
 
