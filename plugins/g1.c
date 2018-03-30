@@ -209,15 +209,16 @@ static void g1_post_online(struct ofono_modem *modem)
 
 static void set_online_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
-  DBG();
-#if 0
-	struct cb_data *cbd = user_data;
-	ofono_modem_online_cb_t cb = cbd->cb;
-	struct ofono_error error;
+	struct ofono_modem *modem = user_data;
+	GAtChat *chat = ofono_modem_get_data(modem);
 
-	decode_at_error(&error, g_at_result_final_response(result));
-	cb(&error, cbd->data);
-#endif
+	DBG("");
+
+	g_at_chat_unref(chat);
+	ofono_modem_set_data(modem, NULL);
+	
+	//	if (ok)
+	//	ofono_modem_set_online(modem, TRUE);
 }
 
 static void g1_set_online(struct ofono_modem *modem, ofono_bool_t online,
