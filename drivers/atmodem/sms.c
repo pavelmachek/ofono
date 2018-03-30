@@ -467,6 +467,8 @@ static void at_cmt_notify(GAtResult *result, gpointer user_data)
 		at_ack_delivery(sms);
 	return;
 
+	return;
+
 err:
 	ofono_error("Unable to parse CMT notification");
 }
