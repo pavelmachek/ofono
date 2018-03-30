@@ -722,8 +722,10 @@ static void sim_state_watch(enum ofono_sim_state new_state, void *user)
 		modem_change_state(modem, MODEM_STATE_OFFLINE);
 
 		/* Modem is always online, proceed to online state. */
-		if (modem_is_always_online(modem) == TRUE)
+		if (modem_is_always_online(modem) == TRUE) {
 			set_online(modem, TRUE);
+			modem->online = TRUE;
+		}
 
 		if (modem->online == TRUE)
 			modem_change_state(modem, MODEM_STATE_ONLINE);
