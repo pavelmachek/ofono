@@ -1492,7 +1492,6 @@ static int voicecall_dial(struct ofono_voicecall *vc, const char *number,
 	struct ofono_modem *modem = __ofono_atom_get_modem(vc->atom);
 	struct ofono_phone_number ph;
 
-	DBG("");
 	if (g_slist_length(vc->call_list) >= MAX_VOICE_CALLS)
 		return -EPERM;
 

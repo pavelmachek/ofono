@@ -980,7 +980,6 @@ static DBusMessage *network_scan(DBusConnection *conn,
 {
 	struct ofono_netreg *netreg = data;
 
-	DBG();
 	if (netreg->mode == NETWORK_REGISTRATION_MODE_AUTO_ONLY)
 		return __ofono_error_access_denied(msg);
 
@@ -992,7 +991,6 @@ static DBusMessage *network_scan(DBusConnection *conn,
 
 	netreg->pending = dbus_message_ref(msg);
 
-	DBG();
 	netreg->driver->list_operators(netreg, operator_list_callback, netreg);
 
 	return NULL;

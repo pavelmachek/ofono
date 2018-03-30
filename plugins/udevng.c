@@ -1408,7 +1408,7 @@ static void add_serial_device(struct udev_device *dev)
 
 	mdev = get_serial_modem_device(dev);
 	if (!mdev) {
-	  //DBG("Device %s %s is missing required OFONO_DRIVER property", udev_device_get_devpath(mdev), udev_device_get_syspath(mdev));
+		DBG("Device is missing required OFONO_DRIVER property");
 		return;
 	}
 
@@ -1419,9 +1419,6 @@ static void add_serial_device(struct udev_device *dev)
 	devpath = udev_device_get_devpath(mdev);
 
 	devnode = udev_device_get_devnode(dev);
-
-       	DBG("Got OFONO_DRIVER!!!! driver %s path %s\n", driver, devpath);
-
 
 	if (!syspath || !devpath)
 		return;
@@ -1805,7 +1802,6 @@ static void enumerate_devices(struct udev *context)
 	udev_enumerate_unref(enumerate);
 
 	g_hash_table_foreach_remove(modem_list, create_modem, NULL);
-	DBG("Enumerate devices ok?");
 }
 
 static struct udev *udev_ctx;
@@ -1821,8 +1817,6 @@ static gboolean check_modem_list(gpointer user_data)
 
 	g_hash_table_foreach_remove(modem_list, create_modem, NULL);
 
-	DBG("Check modem list ok?");	
-
 	return FALSE;
 }
 
@@ -1831,8 +1825,6 @@ static gboolean udev_event(GIOChannel *channel, GIOCondition cond,
 {
 	struct udev_device *device;
 	const char *action;
-
-	DBG("udev event");
 
 	if (cond & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
 		ofono_warn("Error with udev monitor channel");
@@ -1852,14 +1844,11 @@ static gboolean udev_event(GIOChannel *channel, GIOCondition cond,
 		if (udev_delay > 0)
 			g_source_remove(udev_delay);
 
-		DBG("udev event add -> check");		
 		check_device(device);
 
 		udev_delay = g_timeout_add_seconds(1, check_modem_list, NULL);
-	} else if (g_str_equal(action, "remove") == TRUE) {
-	  DBG("udev event remove -> remove");
+	} else if (g_str_equal(action, "remove") == TRUE)
 		remove_device(device);
-	}
 
 	udev_device_unref(device);
 
@@ -1909,10 +1898,8 @@ static int detect_init(void)
 		return -EIO;
 	}
 
-	ofono_warn("detect_init...");
 	modem_list = g_hash_table_new_full(g_str_hash, g_str_equal,
 						NULL, destroy_modem);
-	ofono_warn("detect_init 2...");	
 
 	udev_monitor_filter_add_match_subsystem_devtype(udev_mon, "tty", NULL);
 	udev_monitor_filter_add_match_subsystem_devtype(udev_mon, "usb", NULL);

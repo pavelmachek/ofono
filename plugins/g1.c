@@ -60,8 +60,7 @@ static void g1_debug(const char *str, void *user_data)
 /* Detect hardware, and initialize if found */
 static int g1_probe(struct ofono_modem *modem)
 {
-	DBG("probing G1");
-	DBG("probing G1 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+	DBG("");
 
 	return 0;
 }
@@ -124,14 +123,11 @@ static int g1_enable(struct ofono_modem *modem)
 	if (getenv("OFONO_AT_DEBUG"))
 		g_at_chat_set_debug(chat, g1_debug, "");
 
-		DBG("");
 	ofono_modem_set_data(modem, chat);
 
-	DBG("");	
 	/* ensure modem is in a known state; verbose on, echo/quiet off */
 	g_at_chat_send(chat, "ATE0Q0V1", NULL, NULL, NULL, NULL);
 
-		DBG("");
 	/* power up modem */
 	g_at_chat_send(chat, "AT+CFUN=1", NULL, cfun_set_on_cb, modem, NULL);
 
@@ -202,56 +198,18 @@ static void g1_post_sim(struct ofono_modem *modem)
 		ofono_message_waiting_register(mw);
 }
 
-static void g1_post_online(struct ofono_modem *modem)
-{
-  DBG();
-}
-
-static void set_online_cb(gboolean ok, GAtResult *result, gpointer user_data)
-{
-	struct ofono_modem *modem = user_data;
-	GAtChat *chat = ofono_modem_get_data(modem);
-
-	DBG("");
-
-	g_at_chat_unref(chat);
-	ofono_modem_set_data(modem, NULL);
-	
-	//	if (ok)
-	//	ofono_modem_set_online(modem, TRUE);
-}
-
-static void g1_set_online(struct ofono_modem *modem, ofono_bool_t online,
-				ofono_modem_online_cb_t cb, void *user_data)
-{
-  	GAtChat *chat = ofono_modem_get_data(modem);
-	char const *command = online ? "AT+CFUN=1" : "AT+CFUN=4";
-
-	DBG("modem %p %s", modem, online ? "online" : "offline");
-
-	if (g_at_chat_send(chat, command, NULL,
-					set_online_cb, modem, NULL) > 0)
-		return;
-
-	//CALLBACK_WITH_FAILURE(cb, cbd->data);
-
-}
-
 static struct ofono_modem_driver g1_driver = {
 	.name		= "g1",
 	.probe		= g1_probe,
 	.remove		= g1_remove,
 	.enable		= g1_enable,
 	.disable	= g1_disable,
-	//	.set_online     = g1_set_online,
 	.pre_sim	= g1_pre_sim,
 	.post_sim	= g1_post_sim,
-	.post_online	= g1_post_online,
 };
 
 static int g1_init(void)
 {
-  DBG("g1_init!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	return ofono_modem_driver_register(&g1_driver);
 }
 

@@ -603,14 +603,12 @@ static gboolean modem_has_sim(struct ofono_modem *modem)
 
 static gboolean modem_is_always_online(struct ofono_modem *modem)
 {
-  DBG();
 	if (modem->driver->set_online == NULL)
 		return TRUE;
 
 	if (ofono_modem_get_boolean(modem, "AlwaysOnline") == TRUE)
 		return TRUE;
 
-	DBG("not always");
 	return FALSE;
 }
 
@@ -722,10 +720,8 @@ static void sim_state_watch(enum ofono_sim_state new_state, void *user)
 		modem_change_state(modem, MODEM_STATE_OFFLINE);
 
 		/* Modem is always online, proceed to online state. */
-		if (modem_is_always_online(modem) == TRUE) {
+		if (modem_is_always_online(modem) == TRUE)
 			set_online(modem, TRUE);
-			modem->online = TRUE;
-		}
 
 		if (modem->online == TRUE)
 			modem_change_state(modem, MODEM_STATE_ONLINE);
@@ -1886,17 +1882,13 @@ struct ofono_modem *ofono_modem_create(const char *name, const char *type)
 	else
 		snprintf(path, sizeof(path), "/%s", name);
 
-	if (!dbus_validate_path(path, NULL)) {
-	  DBG("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!bad dbus path");
+	if (!dbus_validate_path(path, NULL))
 		return NULL;
-	}
 
 	modem = g_try_new0(struct ofono_modem, 1);
 
-	if (modem == NULL) {
-	  DBG("!!!out of memory?!");
+	if (modem == NULL)
 		return modem;
-	}
 
 	modem->path = g_strdup(path);
 	modem->driver_type = g_strdup(type);
@@ -1908,7 +1900,6 @@ struct ofono_modem *ofono_modem_create(const char *name, const char *type)
 	if (name == NULL)
 		next_modem_id += 1;
 
-	DBG("Created new modem, path %s", path);
 	return modem;
 }
 
