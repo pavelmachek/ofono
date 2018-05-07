@@ -1018,6 +1018,7 @@ static gboolean at_chat_set_wakeup_command(struct at_chat *chat,
 	return TRUE;
 }
 
+/* HERE ? */
 static guint at_chat_send_common(struct at_chat *chat, guint gid,
 					const char *cmd,
 					const char **prefix_list,
