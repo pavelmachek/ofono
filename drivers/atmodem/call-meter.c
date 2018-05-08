@@ -255,7 +255,7 @@ static void at_cpuc_query(struct ofono_call_meter *cm,
 	struct cb_data *cbd = cb_data_new(cb, data);
 
 	cbd->user = "+CPUC:";
-	if (g_at_chat_send(chat, "AT+CPUC?", cpuc_prefix,
+	if (g_at_chat_send(chat, "AT+CPnottodayUC?", cpuc_prefix,
 				cpuc_query_cb, cbd, g_free) > 0)
 		return;
 
