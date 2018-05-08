@@ -579,6 +579,8 @@ static void have_line(struct at_chat *p, char *str)
 	if (str == NULL)
 		return;
 
+	printf("< %s\n", str);
+
 	/* Check for echo, this should not happen, but lets be paranoid */
 	if (!strncmp(str, "AT", 2))
 		goto done;
@@ -649,6 +651,9 @@ static void have_pdu(struct at_chat *p, char *pdu)
 
 	if (pdu == NULL)
 		goto error;
+
+	printf("<PDU %s\n", pdu);
+
 
 	result.lines = g_slist_prepend(NULL, p->pdu_notify);
 	result.final_or_pdu = pdu;
@@ -764,11 +769,13 @@ static void new_bytes(struct ring_buffer *rbuf, gpointer user_data)
 			break;
 
 		case G_AT_SYNTAX_RESULT_PROMPT:
+		  printf("<PR\n");
 			chat_wakeup_writer(p);
 			ring_buffer_drain(rbuf, p->read_so_far);
 			break;
 
 		default:
+		  printf("<D\n");
 			ring_buffer_drain(rbuf, p->read_so_far);
 			break;
 		}
@@ -845,6 +852,7 @@ static gboolean can_write_data(gpointer data)
 	if (cmd == NULL)
 		return FALSE;
 
+	printf("> %s\n", cmd->cmd);
 	len = strlen(cmd->cmd);
 
 	/* For some reason write watcher fired, but we've already
