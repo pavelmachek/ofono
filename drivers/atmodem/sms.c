@@ -350,7 +350,7 @@ static inline void at_ack_delivery(struct ofono_sms *sms)
 		}
 	} else {
 		/* Should be a safe fallback */
-		snprintf(buf, sizeof(buf), "AT+CNMA=0");
+		snprintf(buf, sizeof(buf), "AT");
 	}
 
 	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
@@ -863,7 +863,7 @@ static gboolean build_cnmi_string(char *buf, int *cnmi_opts,
 
 	/* Prefer to deliver SMS via +CMT if CNMA is supported */
 	if (!append_cnmi_element(buf, &len, cnmi_opts[1],
-					data->cnma_enabled ? "21" : "1", FALSE))
+					data->cnma_enabled ? "21" : "21", FALSE))
 		return FALSE;
 
 	switch (data->vendor) {
@@ -1246,7 +1246,9 @@ static void at_csms_status_cb(gboolean ok, GAtResult *result,
 			goto out;
 
 		if (service == 1 || service == 128)
-			data->cnma_enabled = TRUE;
+			if (data->vendor != OFONO_VENDOR_DROID) {
+				data->cnma_enabled = TRUE;
+			}
 
 		if (mt == 1 && mo == 1)
 			supported = TRUE;
@@ -1306,6 +1308,9 @@ static void at_csms_query_cb(gboolean ok, GAtResult *result,
 				csms = 1;
 		break;
 	}
+
+	printf("Forcing cnma to false\n");
+	//cnma_supported = FALSE;
 
 	DBG("CSMS query parsed successfully");
 
