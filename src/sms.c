@@ -1896,7 +1896,7 @@ static void sms_load_settings(struct ofono_sms *sms, const char *imsi)
 static void bearer_init_callback(const struct ofono_error *error, void *data)
 {
 	if (error->type != OFONO_ERROR_TYPE_NO_ERROR)
-		ofono_error("Error bootstrapping SMS Bearer Preference");
+		printf("Error bootstrapping SMS Bearer Preference (ignoring)\n");
 }
 
 static void sms_restore_tx_queue(struct ofono_sms *sms)

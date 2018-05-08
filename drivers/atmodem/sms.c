@@ -825,7 +825,7 @@ static gboolean build_cnmi_string(char *buf, int *cnmi_opts,
 		break;
 	default:
 		/* Sounds like 2 is the sanest mode */
-		mode = "2310";
+		mode = "1";
 		break;
 	}
 
@@ -837,6 +837,7 @@ static gboolean build_cnmi_string(char *buf, int *cnmi_opts,
 					data->cnma_enabled ? "21" : "1", FALSE))
 		return FALSE;
 
+	return TRUE;
 	/* Always deliver CB via +CBM, otherwise don't deliver at all */
 	if (!append_cnmi_element(buf, &len, cnmi_opts[2], "20", FALSE))
 		return FALSE;
