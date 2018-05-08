@@ -161,6 +161,7 @@ static void clcc_poll_cb(gboolean ok, GAtResult *result, gpointer user_data)
 			poll_again = TRUE;
 			goto poll_again;
 		}
+		goto poll_again;
 
 		ofono_error("We are polling CLCC and received an error");
 		ofono_error("All bets are off for call management");
@@ -420,6 +421,7 @@ static void at_dial(struct ofono_voicecall *vc,
 
 	strcat(buf, ";");
 
+	/* Need to make it non-blocking or something? */
 	if (g_at_chat_send(vd->chat, buf, atd_prefix,
 				atd_cb, cbd, g_free) > 0)
 		return;
