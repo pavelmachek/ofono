@@ -330,12 +330,8 @@ static inline void at_ack_delivery(struct ofono_sms *sms)
 	if (data->cnma_ack_pdu) {
 		switch (data->vendor) {
 		case OFONO_VENDOR_CINTERION:
-			snprintf(buf, sizeof(buf), "AT+CNMA=1");
-			break;
 		default:
-			snprintf(buf, sizeof(buf), "AT+CNMA=1,%d\r%s",
-					data->cnma_ack_pdu_len,
-					data->cnma_ack_pdu);
+			snprintf(buf, sizeof(buf), "AT+CNMA=0");
 			break;
 		}
 	} else {
@@ -825,7 +821,7 @@ static gboolean build_cnmi_string(char *buf, int *cnmi_opts,
 		break;
 	default:
 		/* Sounds like 2 is the sanest mode */
-		mode = "1";
+		mode = "2310";
 		break;
 	}
 
@@ -836,8 +832,7 @@ static gboolean build_cnmi_string(char *buf, int *cnmi_opts,
 	if (!append_cnmi_element(buf, &len, cnmi_opts[1],
 					data->cnma_enabled ? "21" : "1", FALSE))
 		return FALSE;
-
-	return TRUE;
+	
 	/* Always deliver CB via +CBM, otherwise don't deliver at all */
 	if (!append_cnmi_element(buf, &len, cnmi_opts[2], "20", FALSE))
 		return FALSE;
