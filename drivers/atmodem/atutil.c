@@ -381,9 +381,16 @@ gboolean at_util_parse_sms_index_delivery(GAtResult *result, const char *prefix,
 		st = AT_UTIL_SMS_STORE_BM;
 	else
 		return FALSE;
-
-	if (!g_at_result_iter_next_number(&iter, &index))
-		return FALSE;
+#if 0
+	if (g_at_result_iter_next(&iter, "-")) {
+	  printf("Unexpected - arrived, ignoring\n");
+	}
+#endif
+	if (!g_at_result_iter_next_number(&iter, &index)) {
+	  printf("iter next number parse failed, faking\n");
+	  index = 1;
+	  //return FALSE;
+	}
 
 	if (out_index)
 		*out_index = index;

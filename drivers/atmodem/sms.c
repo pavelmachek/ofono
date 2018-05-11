@@ -1208,8 +1208,8 @@ static void at_csms_status_cb(gboolean ok, GAtResult *result,
 		if (!g_at_result_iter_next_number(&iter, &mo))
 			goto out;
 
-		if (service == 1)
-			data->cnma_enabled = TRUE;
+		//if (service == 1)
+		//	data->cnma_enabled = TRUE;
 
 		if (mt == 1 && mo == 1)
 			supported = TRUE;
@@ -1258,6 +1258,9 @@ static void at_csms_query_cb(gboolean ok, GAtResult *result,
 	while (g_at_result_iter_next_range(&iter, &status_min, &status_max))
 		if (status_min <= 1 && 1 <= status_max)
 			cnma_supported = TRUE;
+
+	printf("Forcing cnma to false\n");
+	cnma_supported = FALSE;
 
 	DBG("CSMS query parsed successfully");
 
