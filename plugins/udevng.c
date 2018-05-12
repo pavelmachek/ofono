@@ -232,10 +232,10 @@ static gboolean setup_gobi(struct modem_info *modem)
 			}
 		}
 	}
-
+#if 0
 	if (qmi == NULL || mdm == NULL || net == NULL)
 		return FALSE;
-
+#endif
 	DBG("qmi=%s net=%s mdm=%s gps=%s diag=%s", qmi, net, mdm, gps, diag);
 
 	ofono_modem_set_string(modem->modem, "Device", qmi);
@@ -1602,6 +1602,8 @@ static struct {
 	{ "telit",	"cdc_acm",	"1bc7", "0021"	},
 	{ "telitqmi",	"qmi_wwan",	"1bc7", "1201"	},
 	{ "telitqmi",	"option",	"1bc7", "1201"	},
+	{ "gobi",       "qmi_wwan",     "22b8", "2a70"  },
+	{ "gobi",       "option",       "22b8", "2a70"  },
 	{ "nokia",	"option",	"0421", "060e"	},
 	{ "nokia",	"option",	"0421", "0623"	},
 	{ "samsung",	"option",	"04e8", "6889"	},
