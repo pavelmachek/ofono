@@ -328,7 +328,7 @@ static inline void at_ack_delivery(struct ofono_sms *sms)
 
 	/* We must acknowledge the PDU using CNMA */
 	if (data->cnma_ack_pdu) {
-		switch (data->vendor) {
+		switch (0) {
 		case OFONO_VENDOR_CINTERION:
 			snprintf(buf, sizeof(buf), "AT+CNMA=1");
 			break;
@@ -342,7 +342,7 @@ static inline void at_ack_delivery(struct ofono_sms *sms)
 		}
 	} else {
 		/* Should be a safe fallback */
-		snprintf(buf, sizeof(buf), "AT+CNMA=0");
+		snprintf(buf, sizeof(buf), "AT");
 	}
 
 	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
@@ -836,7 +836,7 @@ static gboolean build_cnmi_string(char *buf, int *cnmi_opts,
 
 	/* Prefer to deliver SMS via +CMT if CNMA is supported */
 	if (!append_cnmi_element(buf, &len, cnmi_opts[1],
-					data->cnma_enabled ? "21" : "1", FALSE))
+					data->cnma_enabled ? "21" : "21", FALSE))
 		return FALSE;
 	
 	/* Always deliver CB via +CBM, otherwise don't deliver at all */
