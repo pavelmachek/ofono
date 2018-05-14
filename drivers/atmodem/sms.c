@@ -328,13 +328,11 @@ static inline void at_ack_delivery(struct ofono_sms *sms)
 
 	/* We must acknowledge the PDU using CNMA */
 	if (data->cnma_ack_pdu) {
-		switch (0) {
+		switch (data->vendor) {
 		case OFONO_VENDOR_CINTERION:
 			snprintf(buf, sizeof(buf), "AT+CNMA=1");
 			break;
 		default:
-		  printf("PDU Len %d, strlen %d\n", data->cnma_ack_pdu_len, strlen(data->cnma_ack_pdu));
-		  printf("PDU last char %d\n", data->cnma_ack_pdu[strlen(data->cnma_ack_pdu)-1]);
 			snprintf(buf, sizeof(buf), "AT+CNMA=1,%d\r%s",
 					data->cnma_ack_pdu_len,
 					data->cnma_ack_pdu);
