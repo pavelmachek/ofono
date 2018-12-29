@@ -45,7 +45,8 @@ bootstrap-configure since it could export development specific settings.
 So the normal steps to checkout, build and install such a repository is
 like this:
 
-  Checkout repository
+  Checkout repositories
+    # git clone git://git.kernel.org/pub/scm/libs/ell/ell.git
     # git clone git://git.kernel.org/pub/scm/network/ofono/ofono.git
     # cd ofono
 

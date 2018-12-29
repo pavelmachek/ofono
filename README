@@ -16,10 +16,13 @@ To configure run:
 	./configure --prefix=/usr --mandir=/usr/share/man \
 				--sysconfdir=/etc --localstatedir=/var
 
-Configure automatically searches for all required components and packages.
+Configure automatically searches for all required components and
+packages, except ell, mentioned below.
 
 To compile and install run:
 	make && make install
+
+See "HACKING" file for details and step-by-step examples. 
 
 
 Embedded Linux library
