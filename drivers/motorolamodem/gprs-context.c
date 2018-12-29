@@ -39,7 +39,7 @@
 #include "gatresult.h"
 #include "gattty.h"
 
-#include "swmodem.h"
+#include "motorolamodem.h"
 
 static const char *none_prefix[] = { NULL };
 
@@ -147,7 +147,7 @@ static void at_cgdcont_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	CALLBACK_WITH_FAILURE(cb, cbd->data);
 }
 
-static void sw_gprs_activate_primary(struct ofono_gprs_context *gc,
+static void motorola_gprs_activate_primary(struct ofono_gprs_context *gc,
 				const struct ofono_gprs_primary_context *ctx,
 				ofono_gprs_context_cb_t cb, void *data)
 {
@@ -190,7 +190,7 @@ static void sw_gprs_activate_primary(struct ofono_gprs_context *gc,
 	CALLBACK_WITH_FAILURE(cb, data);
 }
 
-static void sw_gprs_deactivate_primary(struct ofono_gprs_context *gc,
+static void motorola_gprs_deactivate_primary(struct ofono_gprs_context *gc,
 					unsigned int cid,
 					ofono_gprs_context_cb_t cb, void *data)
 {
@@ -213,7 +213,7 @@ static void sw_gprs_deactivate_primary(struct ofono_gprs_context *gc,
 	CALLBACK_WITH_FAILURE(cb, data);
 }
 
-static int sw_gprs_context_probe(struct ofono_gprs_context *gc,
+static int motorola_gprs_context_probe(struct ofono_gprs_context *gc,
 					unsigned int vendor, void *data)
 {
 	GAtChat *chat = data;
@@ -232,7 +232,7 @@ static int sw_gprs_context_probe(struct ofono_gprs_context *gc,
 	return 0;
 }
 
-static void sw_gprs_context_remove(struct ofono_gprs_context *gc)
+static void motorola_gprs_context_remove(struct ofono_gprs_context *gc)
 {
 	struct gprs_context_data *gcd = ofono_gprs_context_get_data(gc);
 
@@ -245,19 +245,19 @@ static void sw_gprs_context_remove(struct ofono_gprs_context *gc)
 }
 
 static const struct ofono_gprs_context_driver driver = {
-	.name			= "swmodem",
-	.probe			= sw_gprs_context_probe,
-	.remove			= sw_gprs_context_remove,
-	.activate_primary	= sw_gprs_activate_primary,
-	.deactivate_primary	= sw_gprs_deactivate_primary,
+	.name			= "motorolamodem",
+	.probe			= motorola_gprs_context_probe,
+	.remove			= motorola_gprs_context_remove,
+	.activate_primary	= motorola_gprs_activate_primary,
+	.deactivate_primary	= motorola_gprs_deactivate_primary,
 };
 
-void sw_gprs_context_init(void)
+void motorola_gprs_context_init(void)
 {
 	ofono_gprs_context_driver_register(&driver);
 }
 
-void sw_gprs_context_exit(void)
+void motorola_gprs_context_exit(void)
 {
 	ofono_gprs_context_driver_unregister(&driver);
 }

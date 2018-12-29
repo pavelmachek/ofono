@@ -23,8 +23,6 @@
 #include <config.h>
 #endif
 
-#error Add me to build system
-
 #include <glib.h>
 #include <gatchat.h>
 
@@ -32,20 +30,20 @@
 #include <ofono/plugin.h>
 #include <ofono/types.h>
 
-#include "swmodem.h"
+#include "motorolamodem.h"
 
-static int swmodem_init(void)
+static int motorolamodem_init(void)
 {
-	sw_gprs_context_init();
+	motorola_gprs_context_init();
 
 	return 0;
 }
 
-static void swmodem_exit(void)
+static void motorolamodem_exit(void)
 {
-	sw_gprs_context_exit();
+	motorola_gprs_context_exit();
 }
 
-OFONO_PLUGIN_DEFINE(swmodem, "Sierra modem driver", VERSION,
+OFONO_PLUGIN_DEFINE(motorolamodem, "Motorola modem driver", VERSION,
 			OFONO_PLUGIN_PRIORITY_DEFAULT,
-			swmodem_init, swmodem_exit)
+			motorolamodem_init, motorolamodem_exit)
