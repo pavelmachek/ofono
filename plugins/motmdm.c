@@ -74,6 +74,9 @@ struct motmdm_data {
 	struct ofono_sim *sim;
 };
 
+#define NUM_DLC 1 /* HACK */
+
+
 static const char *cpin_prefix[] = { "+CPIN:", NULL };
 static const char *none_prefix[] = { NULL };
 
@@ -116,12 +119,44 @@ static void motmdm_remove(struct ofono_modem *modem)
 	g_free(data);
 }
 
+static void cstat_notify(GAtResult *result, gpointer user_data)
+{
+	struct ofono_modem *modem = user_data;
+	struct calypso_data *data = ofono_modem_get_data(modem);
+	GAtResultIter iter;
+	const char *stat;
+	int enabled;
+
+	DBG("signal changes\n");
+
+	g_at_result_iter_init(&iter, result);
+
+	if (!g_at_result_iter_next(&iter, "%CSTAT:"))
+		return;
+
+	if (!g_at_result_iter_next_unquoted_string(&iter, &stat))
+		return;
+
+	/* 7 numbers */
+	if (!g_at_result_iter_next_number(&iter, &enabled))
+		return;
+}
+
+
 static void setup_modem(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i;
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+
+	/* AT+SCRN=0 to disable notifications. */
+	/* Test parsing of incoming stuff */
+
+	/* CSTAT tells us when SMS & Phonebook are ready to be used */
+	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
+				FALSE, modem, NULL);
+
 
 #if 0	
 
@@ -245,7 +280,7 @@ static void modem_initialize(struct ofono_modem *modem)
 
 	//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
 
-	for (int i = 0; i < 1; i++) {
+	for (int i = 0; i < NUM_DLC; i++) {
 	  data->dlcs[i] = chat;
 
 	  if (getenv("OFONO_AT_DEBUG")) {
@@ -288,7 +323,7 @@ static int motmdm_disable(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < NUM_DLC;  i++) {
 		g_at_chat_unref(data->dlcs[i]);
 		data->dlcs[i] = NULL;
 	}
