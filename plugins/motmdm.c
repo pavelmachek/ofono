@@ -345,92 +345,14 @@ error:
 	ofono_modem_set_powered(modem, FALSE);
 }
 
-static gboolean write_file(const char *file, gboolean on)
-{
-	int fd;
-	int r;
-
-	fd = open(file, O_WRONLY);
-
-	if (fd == -1)
-		return FALSE;
-
-	DBG("%s, %s", file, on ? "1" : "0");
-
-	if (on)
-		r = write(fd, "1\n", 2);
-	else
-		r = write(fd, "0\n", 2);
-
-	close(fd);
-
-	return r > 0 ? TRUE : FALSE;
-}
-
-static gboolean poweron_cycle(gpointer user_data)
-{
-	struct ofono_modem *modem = user_data;
-	struct motmdm_data *data = ofono_modem_get_data(modem);
-
-	switch (data->state) {
-	case POWERCYCLE_STATE_POWER0:
-		if (write_file(MOTMDM_RESET_PATH, FALSE)) {
-			data->state = POWERCYCLE_STATE_RESET0;
-			return TRUE;
-		}
-
-		break;
-
-	case POWERCYCLE_STATE_RESET0:
-		if (write_file(MOTMDM_POWER_PATH, TRUE)) {
-			data->state = POWERCYCLE_STATE_POWER1;
-			return TRUE;
-		}
-
-		break;
-
-	case POWERCYCLE_STATE_POWER1:
-		if (write_file(MOTMDM_RESET_PATH, TRUE)) {
-			data->state = POWERCYCLE_STATE_RESET1;
-			return TRUE;
-		}
-
-		break;
-
-	case POWERCYCLE_STATE_RESET1:
-		if (write_file(MOTMDM_RESET_PATH, FALSE)) {
-			data->state = POWERCYCLE_STATE_FINISHED;
-			return TRUE;
-		}
-
-		break;
-
-	case POWERCYCLE_STATE_FINISHED:
-		modem_initialize(modem);
-		return FALSE;
-
-	default:
-		break;
-	};
-
-	ofono_modem_set_powered(modem, FALSE);
-	return FALSE;
-}
-
 /* power up hardware */
 static int motmdm_enable(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 
-	DBG("%p", modem);
+	modem_initialize(modem);
 
-	if (write_file(MOTMDM_POWER_PATH, FALSE) == FALSE)
-		return -EINVAL;
-
-	data->state = POWERCYCLE_STATE_POWER0;
-	g_timeout_add_seconds(1, poweron_cycle, modem);
-
-	return -EINPROGRESS;
+	return 0;
 }
 
 static int motmdm_disable(struct ofono_modem *modem)
@@ -451,9 +373,6 @@ static int motmdm_disable(struct ofono_modem *modem)
 
 	data->phonebook_added = FALSE;
 	data->sms_added = FALSE;
-
-	if (write_file(MOTMDM_POWER_PATH, FALSE))
-		return 0;
 
 	return -EINVAL;
 }
