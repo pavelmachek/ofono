@@ -131,15 +131,15 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 
 	g_at_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "%CSTAT:"))
+	if (!g_at_result_iter_next(&iter, "~+RSSI="))
 		return;
 
-	if (!g_at_result_iter_next_unquoted_string(&iter, &stat))
-		return;
-
+	for (int i = 0; i < 7; i++) {
 	/* 7 numbers */
-	if (!g_at_result_iter_next_number(&iter, &enabled))
-		return;
+	  if (!g_at_result_iter_next_number(&iter, &enabled))
+	    return;
+	  DBG("signal changes %d %d\n", i, enabled);
+	}
 }
 
 
