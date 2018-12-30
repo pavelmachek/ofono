@@ -209,15 +209,16 @@ static void modem_initialize(struct ofono_modem *modem)
 	g_hash_table_insert(options, "Parity", "none");
 	g_hash_table_insert(options, "StopBits", "1");
 	g_hash_table_insert(options, "DataBits", "8");
-	g_hash_table_insert(options, "XonXoff", "on");
-	g_hash_table_insert(options, "Local", "on");
-	g_hash_table_insert(options, "RtsCts", "on");
+	g_hash_table_insert(options, "XonXoff", "off");
+	g_hash_table_insert(options, "Local", "off");
+	g_hash_table_insert(options, "RtsCts", "off");
 
+	device = "/dev/motmdm1";
 	DBG("tty_open %s\n", device);
-	if (1)
+	if (0)
 	{
 	  //int fd = open("/dev/motmdm1", O_RDWR);
-	  int fd = open("/tmp/delme", O_RDWR);
+	  int fd = open(device, O_RDWR);
 	  io = g_io_channel_unix_new(fd);
 	} else
 	  io = g_at_tty_open(device, options);
@@ -314,7 +315,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 	ofono_voicecall_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
 
 	DBG("Sending CFUN=1\n");
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1",
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1\r\n",
 			none_prefix, NULL, NULL, NULL);
 
 	ofono_sim_inserted_notify(data->sim, TRUE);
