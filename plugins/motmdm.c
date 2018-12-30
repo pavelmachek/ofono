@@ -67,7 +67,6 @@
 static char *debug_prefixes[NUM_DLC] = { "Voice: ", "Net: ", "SMS: " };
 
 struct motmdm_data {
-	GAtMux *mux;
 	GAtChat *dlcs[NUM_DLC];
 	gboolean phonebook_added;
 	gboolean sms_added;
@@ -289,14 +288,10 @@ static int motmdm_disable(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-	for (i = 0; i < NUM_DLC; i++) {
+	for (i = 0; i < 1; i++) {
 		g_at_chat_unref(data->dlcs[i]);
 		data->dlcs[i] = NULL;
 	}
-
-	g_at_mux_shutdown(data->mux);
-	g_at_mux_unref(data->mux);
-	data->mux = NULL;
 
 	data->phonebook_added = FALSE;
 	data->sms_added = FALSE;
