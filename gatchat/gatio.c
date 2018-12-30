@@ -96,6 +96,7 @@ static gboolean received_data(GIOChannel *channel, GIOCondition cond,
 	/* Regardless of condition, try to read all the data available */
 	do {
 		toread = ring_buffer_avail_no_wrap(io->buf);
+		printf("received_data, toread %d\n", toread);
 
 		if (toread == 0)
 			break;
@@ -139,6 +140,7 @@ gsize g_at_io_write(GAtIO *io, const gchar *data, gsize count)
 	GIOStatus status;
 	gsize bytes_written;
 
+	printf("g_at_io_write %d\n", count);
 	status = g_io_channel_write_chars(io->channel, data,
 						count, &bytes_written, NULL);
 
@@ -189,6 +191,9 @@ static GAtIO *create_io(GIOChannel *channel, GIOFlags flags)
 	if (channel == NULL)
 		return NULL;
 
+
+	printf("create_io\n");
+	
 	io = g_try_new0(GAtIO, 1);
 	if (io == NULL)
 		return io;

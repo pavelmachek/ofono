@@ -475,7 +475,8 @@ static struct terminator_info terminator_table[] = {
 	{ "NO ANSWER", -1, FALSE },
 	{ "+CMS ERROR:", 11, FALSE },
 	{ "+CME ERROR:", 11, FALSE },
-	{ "+EXT ERROR:", 11, FALSE }
+	{ "+EXT ERROR:", 11, FALSE },
+	{ ":OK", -1, TRUE },
 };
 
 static void at_chat_add_terminator(struct at_chat *chat, char *terminator,

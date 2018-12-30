@@ -58,31 +58,17 @@
 
 #include <drivers/atmodem/vendor.h>
 
-#define MOTMDM_POWER_PATH "/sys/bus/platform/devices/gta02-pm-gsm.0/power_on"
-#define MOTMDM_RESET_PATH "/sys/bus/platform/devices/gta02-pm-gsm.0/reset"
-
-enum powercycle_state {
-	POWERCYCLE_STATE_POWER0 = 0,
-	POWERCYCLE_STATE_RESET0,
-	POWERCYCLE_STATE_POWER1,
-	POWERCYCLE_STATE_RESET1,
-	POWERCYCLE_STATE_FINISHED,
-};
-
-#define NUM_DLC 4
+#define NUM_DLC 3
 
 #define VOICE_DLC   0
 #define NETREG_DLC  1
 #define SMS_DLC     2
-#define AUX_DLC     3
-#define SETUP_DLC   3
 
-static char *debug_prefixes[NUM_DLC] = { "Voice: ", "Net: ", "SMS: ", "Aux: " };
+static char *debug_prefixes[NUM_DLC] = { "Voice: ", "Net: ", "SMS: " };
 
 struct motmdm_data {
 	GAtMux *mux;
 	GAtChat *dlcs[NUM_DLC];
-	enum powercycle_state state;
 	gboolean phonebook_added;
 	gboolean sms_added;
 	gboolean have_sim;
@@ -96,6 +82,7 @@ static void motmdm_debug(const char *str, void *user_data)
 {
 	const char *prefix = user_data;
 
+	DBG("motmdm_debug -- ####################################################\n");
 	ofono_info("%s%s", prefix, str);
 }
 
@@ -130,62 +117,14 @@ static void motmdm_remove(struct ofono_modem *modem)
 	g_free(data);
 }
 
-static void cstat_notify(GAtResult *result, gpointer user_data)
-{
-	struct ofono_modem *modem = user_data;
-	struct motmdm_data *data = ofono_modem_get_data(modem);
-	GAtResultIter iter;
-	const char *stat;
-	int enabled;
-
-	DBG("phonebook: %d, sms: %d", data->phonebook_added, data->sms_added);
-
-	g_at_result_iter_init(&iter, result);
-
-	if (!g_at_result_iter_next(&iter, "%CSTAT:"))
-		return;
-
-	if (!g_at_result_iter_next_unquoted_string(&iter, &stat))
-		return;
-
-	if (!g_at_result_iter_next_number(&iter, &enabled))
-		return;
-
-	DBG("stat: %s, enabled: %d", stat, enabled);
-
-	if (!g_strcmp0(stat, "PHB") && enabled == 1 && !data->phonebook_added) {
-		data->phonebook_added = TRUE;
-		ofono_phonebook_create(modem, 0, "atmodem",
-					data->dlcs[AUX_DLC]);
-	}
-
-	if (!g_strcmp0(stat, "SMS") && enabled == 1 && !data->sms_added) {
-		data->sms_added = TRUE;
-		ofono_sms_create(modem, 0, "atmodem", data->dlcs[SMS_DLC]);
-	}
-}
-
-static void simind_notify(GAtResult *result, gpointer user_data)
-{
-	struct ofono_modem *modem = user_data;
-	struct motmdm_data *data = ofono_modem_get_data(modem);
-	GAtResultIter iter;
-
-	if (data->sim == NULL)
-		return;
-
-	g_at_result_iter_init(&iter, result);
-
-	if (g_at_result_iter_next(&iter, "%SIMREM:"))
-		ofono_sim_inserted_notify(data->sim, FALSE);
-	else if (g_at_result_iter_next(&iter, "%SIMINS:"))
-		ofono_sim_inserted_notify(data->sim, TRUE);
-}
-
 static void setup_modem(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i;
+
+	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+
+#if 0	
 
 	/* Generate unsolicited notifications as soon as they're generated */
 	for (i = 0; i < NUM_DLC; i++) {
@@ -217,6 +156,7 @@ static void setup_modem(struct ofono_modem *modem)
 				FALSE, modem, NULL);
 	g_at_chat_send(data->dlcs[SETUP_DLC], "AT%SIMIND=1", NULL,
 				NULL, NULL, NULL);
+#endif
 }
 
 static void simpin_check_cb(gboolean ok, GAtResult *result, gpointer user_data)
@@ -244,48 +184,8 @@ static void init_simpin_check(struct ofono_modem *modem)
 	 * restarting the device so there's no need to check more
 	 * than once.
 	 */
-	g_at_chat_send(data->dlcs[SETUP_DLC], "AT+CPIN?", cpin_prefix,
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CPIN?", cpin_prefix,
 			simpin_check_cb, modem, NULL);
-}
-
-static void mux_setup(GAtMux *mux, gpointer user_data)
-{
-	struct ofono_modem *modem = user_data;
-	struct motmdm_data *data = ofono_modem_get_data(modem);
-	GIOChannel *io;
-	GAtSyntax *syntax;
-	int i;
-
-	DBG("%p", mux);
-
-	if (mux == NULL) {
-		ofono_modem_set_powered(modem, FALSE);
-		return;
-	}
-
-	data->mux = mux;
-
-	if (getenv("OFONO_AT_DEBUG"))
-		g_at_mux_set_debug(data->mux, motmdm_debug, "MUX: ");
-
-	g_at_mux_start(mux);
-
-	for (i = 0; i < NUM_DLC; i++) {
-		io = g_at_mux_create_channel(mux);
-
-		syntax = g_at_syntax_new_gsm_permissive();
-		data->dlcs[i] = g_at_chat_new(io, syntax);
-		g_at_syntax_unref(syntax);
-		g_io_channel_unref(io);
-
-		if (getenv("OFONO_AT_DEBUG"))
-			g_at_chat_set_debug(data->dlcs[i], motmdm_debug,
-							debug_prefixes[i]);
-
-		g_at_chat_set_wakeup_command(data->dlcs[i], "AT\r", 500, 5000);
-	}
-
-	init_simpin_check(modem);
 }
 
 static void modem_initialize(struct ofono_modem *modem)
@@ -295,6 +195,7 @@ static void modem_initialize(struct ofono_modem *modem)
 	const char *device;
 	GIOChannel *io;
 	GHashTable *options;
+	struct motmdm_data *data = ofono_modem_get_data(modem);
 
 	DBG("");
 
@@ -312,7 +213,15 @@ static void modem_initialize(struct ofono_modem *modem)
 	g_hash_table_insert(options, "Local", "on");
 	g_hash_table_insert(options, "RtsCts", "on");
 
-	io = g_at_tty_open(device, options);
+	DBG("tty_open %s\n", device);
+	if (1)
+	{
+	  //int fd = open("/dev/motmdm1", O_RDWR);
+	  int fd = open("/tmp/delme", O_RDWR);
+	  io = g_io_channel_unix_new(fd);
+	} else
+	  io = g_at_tty_open(device, options);
+
 	g_hash_table_destroy(options);
 
 	if (io == NULL)
@@ -332,16 +241,33 @@ static void modem_initialize(struct ofono_modem *modem)
 	if (getenv("OFONO_AT_DEBUG") != NULL)
 		g_at_chat_set_debug(chat, motmdm_debug, "Setup: ");
 
-	g_at_chat_set_wakeup_command(chat, "AT\r", 500, 5000);
+	DBG("modem initialized?\n");
 
-	g_at_chat_send(chat, "ATE0", NULL, NULL, NULL, NULL);
+	//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
 
-	g_at_mux_setup_gsm0710(chat, mux_setup, modem, NULL);
-	g_at_chat_unref(chat);
+	for (int i = 0; i < 1; i++) {
+	  data->dlcs[i] = chat;
+
+	  if (getenv("OFONO_AT_DEBUG")) {
+	    DBG("debugging enabled\n");
+			g_at_chat_set_debug(data->dlcs[i], motmdm_debug,
+							debug_prefixes[i]);
+	  }
+		else
+		  DBG("debug not enabled\n");
+	}
+
+	setup_modem(modem);
+
+	ofono_modem_set_powered(modem, TRUE);
+
+	g_at_chat_send(chat, "AT", NULL, NULL, NULL, NULL);
+	DBG("AT sent?\n");
 
 	return;
 
 error:
+	DBG("error in modem_initalize\n");
 	ofono_modem_set_powered(modem, FALSE);
 }
 
@@ -383,61 +309,15 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-	ofono_devinfo_create(modem, 0, "atmodem", data->dlcs[AUX_DLC]);
-	data->sim = ofono_sim_create(modem, 0, "atmodem", data->dlcs[AUX_DLC]);
-	ofono_voicecall_create(modem, 0, "motmdmmodem", data->dlcs[VOICE_DLC]);
+	ofono_devinfo_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
+	data->sim = ofono_sim_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_voicecall_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
 
-	/*
-	 * The STK atom is only useful after SIM has been initialised,
-	 * so really it belongs in post_sim.  However, the order of the
-	 * following three actions is adapted to work around different
-	 * issues with the Motmdm's firmware in its different versions
-	 * (may have been fixed starting at some version, but this order
-	 * should work with any version).
-	 *
-	 * To deal with PIN-enabled and PIN-disabled SIM cards, the order
-	 * needs to be as follows:
-	 *
-	 * AT%SATC="..."
-	 * ...
-	 * AT+CFUN=1
-	 * ...
-	 * AT+CPIN="..."
-	 *
-	 * %SATC comes before the other two actions because it provides
-	 * the Terminal Profile data to the modem, which will be used
-	 * during the Profile Download either during +CFUN=1 (on
-	 * unprotected cards) or +CPIN="..." (on protected cards).
-	 * The STK atom needs to be present at this time because the
-	 * card may start issuing proactive commands immediately after
-	 * the Download.
-	 *
-	 * +CFUN=1 appears before PIN entry because switching from +CFUN
-	 * mode 0 later, on the Motmdm has side effects at least on some
-	 * versions of the firmware:
-	 *
-	 * mode 0 -> 1 transition forces PIN re-authentication.
-	 * mode 0 -> 4 doesn't work at all.
-	 * mode 1 -> 4 and
-	 * mode 4 -> 1 transitions work and have no side effects.
-	 *
-	 * So in order to switch to Offline mode at startup,
-	 * AT+CFUN=1;+CFUN=4 would be needed.
-	 *
-	 * Additionally AT+CFUN=1 response is not checked: on PIN-enabled
-	 * cards, it will in most situations return "+CME ERROR: SIM PIN
-	 * required" (CME ERROR 11) even though the switch to mode 1
-	 * succeeds.  It will not perform Profile Download on those cards
-	 * though, until another +CPIN command.
-	 */
-	if (data->have_sim && data->sim)
-		ofono_stk_create(modem, 0, "motmdmmodem", data->dlcs[AUX_DLC]);
-
-	g_at_chat_send(data->dlcs[AUX_DLC], "AT+CFUN=1",
+	DBG("Sending CFUN=1\n");
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1",
 			none_prefix, NULL, NULL, NULL);
 
-	if (data->have_sim && data->sim)
-		ofono_sim_inserted_notify(data->sim, TRUE);
+	ofono_sim_inserted_notify(data->sim, TRUE);
 }
 
 static void motmdm_post_sim(struct ofono_modem *modem)
@@ -447,14 +327,14 @@ static void motmdm_post_sim(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-	ofono_ussd_create(modem, 0, "atmodem", data->dlcs[AUX_DLC]);
-	ofono_call_forwarding_create(modem, 0, "atmodem", data->dlcs[AUX_DLC]);
-	ofono_call_settings_create(modem, 0, "atmodem", data->dlcs[AUX_DLC]);
+	ofono_ussd_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_call_forwarding_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_call_settings_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_netreg_create(modem, OFONO_VENDOR_CALYPSO, "atmodem",
 				data->dlcs[NETREG_DLC]);
-	ofono_call_meter_create(modem, 0, "atmodem", data->dlcs[AUX_DLC]);
-	ofono_call_barring_create(modem, 0, "atmodem", data->dlcs[AUX_DLC]);
-	ofono_call_volume_create(modem, 0, "atmodem", data->dlcs[AUX_DLC]);
+	ofono_call_meter_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_call_barring_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_call_volume_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
 
 	mw = ofono_message_waiting_create(modem);
 	if (mw)
