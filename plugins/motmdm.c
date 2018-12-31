@@ -56,6 +56,9 @@
 #include <ofono/voicecall.h>
 #include <ofono/stk.h>
 
+#include "gatio.h"
+#include "gatchat.h"
+
 #include <drivers/atmodem/vendor.h>
 
 #define NUM_DLC 3
@@ -63,6 +66,8 @@
 #define VOICE_DLC   0
 #define NETREG_DLC  1
 #define SMS_DLC     2
+
+static int fd;
 
 static char *debug_prefixes[NUM_DLC] = { "Voice: ", "Net: ", "SMS: " };
 
@@ -127,7 +132,7 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 	const char *stat;
 	int enabled;
 
-	DBG("signal changes\n");
+	//DBG("signal changes\n");
 
 	g_at_result_iter_init(&iter, result);
 
@@ -138,7 +143,7 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 	/* 7 numbers */
 	  if (!g_at_result_iter_next_number(&iter, &enabled))
 	    return;
-	  DBG("signal changes %d %d\n", i, enabled);
+	  //DBG("signal changes %d %d\n", i, enabled);
 	}
 }
 
@@ -148,7 +153,7 @@ static void setup_modem(struct ofono_modem *modem)
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i;
 
-	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! start\n");
 
 	/* AT+SCRN=0 to disable notifications. */
 	/* Test parsing of incoming stuff */
@@ -156,41 +161,12 @@ static void setup_modem(struct ofono_modem *modem)
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
 	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", NULL, NULL, NULL, NULL);
 
+	write(fd, "AT+SCRN=0\r\n", 11);
+	//g_at_io_write(data->dlcs[VOICE_DLC]->io, "AT+SCRN=0\r\n", 11);
 
-#if 0	
-
-	/* Generate unsolicited notifications as soon as they're generated */
-	for (i = 0; i < NUM_DLC; i++) {
-		g_at_chat_send(data->dlcs[i], "ATE0", NULL, NULL, NULL, NULL);
-		g_at_chat_send(data->dlcs[i], "AT%CUNS=0",
-				NULL, NULL, NULL, NULL);
-		g_at_chat_send(data->dlcs[i], "AT+CMEE=1",
-				NULL, NULL, NULL, NULL);
-	}
-
-	/* CSTAT tells us when SMS & Phonebook are ready to be used */
-	g_at_chat_register(data->dlcs[SETUP_DLC], "%CSTAT:", cstat_notify,
-				FALSE, modem, NULL);
-	g_at_chat_send(data->dlcs[SETUP_DLC], "AT%CSTAT=1", NULL,
-				NULL, NULL, NULL);
-
-	/* audio side tone: set to minimum */
-	g_at_chat_send(data->dlcs[SETUP_DLC], "AT@ST=\"-26\"", NULL,
-			NULL, NULL, NULL);
-
-	/* Disable deep sleep */
-	g_at_chat_send(data->dlcs[SETUP_DLC], "AT%SLEEP=2", NULL,
-			NULL, NULL, NULL);
-
-	/* Enable SIM removed/inserted notifications */
-	g_at_chat_register(data->dlcs[SETUP_DLC], "%SIMREM:", simind_notify,
-				FALSE, modem, NULL);
-	g_at_chat_register(data->dlcs[SETUP_DLC], "%SIMINS:", simind_notify,
-				FALSE, modem, NULL);
-	g_at_chat_send(data->dlcs[SETUP_DLC], "AT%SIMIND=1", NULL,
-				NULL, NULL, NULL);
-#endif
+	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
 }
 
 static void simpin_check_cb(gboolean ok, GAtResult *result, gpointer user_data)
@@ -248,11 +224,13 @@ static void modem_initialize(struct ofono_modem *modem)
 	g_hash_table_insert(options, "RtsCts", "off");
 
 	device = "/dev/motmdm1";
+	//device = "/dev/ttyUSB4";
 	DBG("tty_open %s\n", device);
-	if (0)
+	fd = 999;
+	if (1)
 	{
 	  //int fd = open("/dev/motmdm1", O_RDWR);
-	  int fd = open(device, O_RDWR);
+	  fd = open(device, O_RDWR);
 	  io = g_io_channel_unix_new(fd);
 	} else
 	  io = g_at_tty_open(device, options);
@@ -262,8 +240,7 @@ static void modem_initialize(struct ofono_modem *modem)
 	if (io == NULL)
 		goto error;
 
-	/* Motmdm is normally compliant to 27.007, except the vendor-specific
-	 * notifications (like %CSTAT) are not prefixed by \r\n
+	/* 
 	 */
 	syntax = g_at_syntax_new_gsm_permissive();
 	chat = g_at_chat_new(io, syntax);
@@ -273,12 +250,9 @@ static void modem_initialize(struct ofono_modem *modem)
 	if (chat == NULL)
 		goto error;
 
-	if (getenv("OFONO_AT_DEBUG") != NULL)
-		g_at_chat_set_debug(chat, motmdm_debug, "Setup: ");
-
 	DBG("modem initialized?\n");
 
-	//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
+	g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
 
 	for (int i = 0; i < NUM_DLC; i++) {
 	  data->dlcs[i] = chat;
@@ -296,8 +270,8 @@ static void modem_initialize(struct ofono_modem *modem)
 
 	ofono_modem_set_powered(modem, TRUE);
 
-	g_at_chat_send(chat, "AT", NULL, NULL, NULL, NULL);
-	DBG("AT sent?\n");
+	//g_at_chat_send(chat, "AT", NULL, NULL, NULL, NULL);
+	//DBG("AT sent?\n");
 
 	return;
 
