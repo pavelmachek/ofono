@@ -1030,7 +1030,6 @@ static guint at_chat_send_common(struct at_chat *chat, guint gid,
 {
 	struct at_command *c;
 
-	printf("send: start\n");
 	if (chat == NULL || chat->command_queue == NULL)
 		return 0;
 
@@ -1041,10 +1040,7 @@ static guint at_chat_send_common(struct at_chat *chat, guint gid,
 
 	c->id = chat->next_cmd_id++;
 
-	printf("send: push\n");
 	g_queue_push_tail(chat->command_queue, c);
-
-	printf("send: queue %d\n",  g_queue_get_length(chat->command_queue));
 
 	if (g_queue_get_length(chat->command_queue) == 1)
 		chat_wakeup_writer(chat);

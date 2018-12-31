@@ -67,8 +67,6 @@
 #define NETREG_DLC  1
 #define SMS_DLC     2
 
-static int fd;
-
 static char *debug_prefixes[NUM_DLC] = { "Voice: ", "Net: ", "SMS: " };
 
 struct motmdm_data {
@@ -163,7 +161,7 @@ static void setup_modem(struct ofono_modem *modem)
 				FALSE, modem, NULL);
 	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", NULL, NULL, NULL, NULL);
 
-	write(fd, "AT+SCRN=0\r\n", 11);
+	//write(fd, "AT+SCRN=0\r\n", 11);
 	//g_at_io_write(data->dlcs[VOICE_DLC]->io, "AT+SCRN=0\r\n", 11);
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
@@ -223,10 +221,10 @@ static void modem_initialize(struct ofono_modem *modem)
 	g_hash_table_insert(options, "Local", "off");
 	g_hash_table_insert(options, "RtsCts", "off");
 
-	device = "/dev/motmdm1";
+	device = "/dev/motmdm1"; /* Not a tty device */
 	//device = "/dev/ttyUSB4";
 	DBG("tty_open %s\n", device);
-	fd = 999;
+	int fd = 999;
 	if (1)
 	{
 	  //int fd = open("/dev/motmdm1", O_RDWR);
@@ -252,7 +250,7 @@ static void modem_initialize(struct ofono_modem *modem)
 
 	DBG("modem initialized?\n");
 
-	g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
+	//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
 
 	for (int i = 0; i < NUM_DLC; i++) {
 	  data->dlcs[i] = chat;
@@ -319,7 +317,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 	ofono_voicecall_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
 
 	DBG("Sending CFUN=1\n");
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1\r\n",
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1",
 			none_prefix, NULL, NULL, NULL);
 
 	ofono_sim_inserted_notify(data->sim, TRUE);
