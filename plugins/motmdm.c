@@ -81,6 +81,8 @@ struct motmdm_data {
 
 
 static const char *cpin_prefix[] = { "+CPIN:", NULL };
+static const char *cfun_prefix[] = { "+CFUN:", NULL };
+static const char *scrn_prefix[] = { "+SCRN:", NULL };
 static const char *none_prefix[] = { NULL };
 
 static void motmdm_debug(const char *str, void *user_data)
@@ -146,6 +148,22 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 }
 
 
+static void cfun_cb(gboolean ok, GAtResult *result, gpointer user_data)
+{
+	struct ofono_modem *modem = user_data;
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+
+	DBG("");
+}
+
+static void scrn_cb(gboolean ok, GAtResult *result, gpointer user_data)
+{
+	struct ofono_modem *modem = user_data;
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+
+	DBG("");
+}
+
 static void setup_modem(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
@@ -159,7 +177,9 @@ static void setup_modem(struct ofono_modem *modem)
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
 	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", NULL, NULL, NULL, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", cfun_prefix, cfun_cb, modem, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", scrn_prefix, cfun_cb, modem, NULL);
+
 
 	//write(fd, "AT+SCRN=0\r\n", 11);
 	//g_at_io_write(data->dlcs[VOICE_DLC]->io, "AT+SCRN=0\r\n", 11);
@@ -316,9 +336,9 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 	data->sim = ofono_sim_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_voicecall_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
 
-	DBG("Sending CFUN=1\n");
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1",
-			none_prefix, NULL, NULL, NULL);
+	//DBG("Sending CFUN=1\n");
+	//g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1",
+	//		NULL, NULL, NULL, NULL);
 
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
