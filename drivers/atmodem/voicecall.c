@@ -467,7 +467,10 @@ static void at_hangup(struct ofono_voicecall *vc,
 			ofono_voicecall_cb_t cb, void *data)
 {
 	/* Hangup active call */
+  if (0 /* FIXME -- vd->vendor != OFONO_VENDOR_MOTMDM */)
 	at_template("AT+CHUP", vc, generic_cb, 0x3f, cb, data);
+  else
+    	at_template("ATH", vc, generic_cb, 0x3f, cb, data);
 }
 
 static void clcc_cb(gboolean ok, GAtResult *result, gpointer user_data)
