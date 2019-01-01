@@ -479,7 +479,8 @@ static struct terminator_info terminator_table[] = {
 	{ "+SCRN:OK", -1, TRUE },
 	{ "+CFUN:OK", -1, TRUE },
 	{ "+CLIP:OK", -1, TRUE },
-	{ "+CCWA:OK", -1, TRUE },	
+	{ "+CCWA:OK", -1, TRUE },
+	{ "+CLCC:", -1, TRUE },
 	{ ":OK", -1, TRUE },
 };
 

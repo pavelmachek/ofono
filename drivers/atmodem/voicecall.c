@@ -269,11 +269,8 @@ static gboolean poll_clcc(gpointer user_data)
 	struct ofono_voicecall *vc = user_data;
 	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
 
-	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
-	  /* FIXME: supported by hw, but don't know how to parse it yet */
 	g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix,
 				clcc_poll_cb, vc, NULL);
-	}
 
 	vd->clcc_source = 0;
 
