@@ -476,6 +476,8 @@ static struct terminator_info terminator_table[] = {
 	{ "+CMS ERROR:", 11, FALSE },
 	{ "+CME ERROR:", 11, FALSE },
 	{ "+EXT ERROR:", 11, FALSE },
+	{ "+SCRN:OK", -1, TRUE },
+	{ "+CFUN:OK", -1, TRUE },
 	{ ":OK", -1, TRUE },
 };
 
@@ -515,6 +517,8 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 	int hint;
 	GSList *l;
 
+	printf("Handle command response: %s\n", line);
+
 	for (i = 0; i < size; i++) {
 		struct terminator_info *info = &terminator_table[i];
 		if (check_terminator(info, line) &&
@@ -524,6 +528,8 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 		}
 	}
 
+	printf("Handle terminator list\n");
+
 	for (l = p->terminator_list; l; l = l->next) {
 		struct terminator_info *info = l->data;
 		if (check_terminator(info, line)) {
@@ -531,18 +537,23 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 			return TRUE;
 		}
 	}
-
+	
 	if (cmd->prefixes) {
 		int n;
 
-		for (n = 0; cmd->prefixes[n]; n++)
+		for (n = 0; cmd->prefixes[n]; n++) {
+		  printf("Command prefixe: %s / %s\n", line, cmd->prefixes[n]);
+
 			if (g_str_has_prefix(line, cmd->prefixes[n]))
 				goto out;
+		}
 
+		printf("Prefix not found\n");
 		return FALSE;
 	}
 
 out:
+	printf("Going out... pdu/multiline?!\n");
 	if (cmd->listing && (cmd->flags & COMMAND_FLAG_EXPECT_PDU))
 		hint = G_AT_SYNTAX_EXPECT_PDU;
 	else
@@ -598,14 +609,19 @@ static void have_line(struct at_chat *p, char *str)
 		 * final response from the modem, so we check this as well.
 		 */
 		if ((c == '\r' || c == 26) &&
-				at_chat_handle_command_response(p, cmd, str))
+		    at_chat_handle_command_response(p, cmd, str)) {
+		  printf("handle command response\n");
 			return;
+		}
 	}
 
-	if (at_chat_match_notify(p, str) == TRUE)
+	if (at_chat_match_notify(p, str) == TRUE) {
+	  printf("match notify said true\n");
 		return;
+	}
 
 done:
+	printf("ignoring line\n");
 	/* No matches & no commands active, ignore line */
 	g_free(str);
 }

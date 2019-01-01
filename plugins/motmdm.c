@@ -178,9 +178,10 @@ static void setup_modem(struct ofono_modem *modem)
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
 	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", scrn_prefix, scrn_cb, modem, NULL);	
-	g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", cfun_prefix, cfun_cb, modem, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
+	if (use_usb)
+		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
 
 
