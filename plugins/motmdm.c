@@ -191,35 +191,6 @@ static void setup_modem(struct ofono_modem *modem)
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
 }
 
-static void simpin_check_cb(gboolean ok, GAtResult *result, gpointer user_data)
-{
-	struct ofono_modem *modem = user_data;
-	struct motmdm_data *data = ofono_modem_get_data(modem);
-
-	DBG("");
-
-	/* Modem returns ERROR if there is no SIM in slot. */
-	data->have_sim = ok;
-
-	setup_modem(modem);
-
-	ofono_modem_set_powered(modem, TRUE);
-}
-
-static void init_simpin_check(struct ofono_modem *modem)
-{
-	struct motmdm_data *data = ofono_modem_get_data(modem);
-
-	/*
-	 * Check for SIM presence by seeing if AT+CPIN? succeeds.
-	 * The SIM can not be practically inserted/removed without
-	 * restarting the device so there's no need to check more
-	 * than once.
-	 */
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CPIN?", cpin_prefix,
-			simpin_check_cb, modem, NULL);
-}
-
 static void modem_initialize(struct ofono_modem *modem)
 {
 	GAtSyntax *syntax;
@@ -318,6 +289,10 @@ static int motmdm_disable(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
+	/* FIXME
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=0", none_prefix, cfun_cb, modem, NULL);
+	*/
+
 	for (i = 0; i < NUM_DLC;  i++) {
 		g_at_chat_unref(data->dlcs[i]);
 		data->dlcs[i] = NULL;
@@ -338,10 +313,6 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 	ofono_devinfo_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
 	data->sim = ofono_sim_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_voicecall_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
-
-	//DBG("Sending CFUN=1\n");
-	//g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1",
-	//		NULL, NULL, NULL, NULL);
 
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
