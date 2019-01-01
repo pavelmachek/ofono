@@ -64,10 +64,11 @@
 #define NUM_DLC 3
 
 #define VOICE_DLC   0
-#define NETREG_DLC  1
-#define SMS_DLC     2
+#define INSMS_DLC   1
+#define OUTSMS_DLC  2
 
-static char *debug_prefixes[NUM_DLC] = { "Voice: ", "Net: ", "SMS: " };
+static char *debug_prefixes[NUM_DLC] = { "Voice: ", "InSMS: ", "OutSMS: " };
+static char *devices[NUM_DLC] = { "/dev/motmdm1", "/dev/motmdm9", "/dev/motmdm3" };
 
 struct motmdm_data {
 	GAtChat *dlcs[NUM_DLC];
@@ -77,8 +78,7 @@ struct motmdm_data {
 	struct ofono_sim *sim;
 };
 
-#define NUM_DLC 1 /* HACK */
-
+#define NUM_DLC 2 /* HACK */
 const int use_usb = 0;
 
 static const char *cpin_prefix[] = { "+CPIN:", NULL };
@@ -178,6 +178,8 @@ static void modem_initialize(struct ofono_modem *modem)
 
 	device = ofono_modem_get_string(modem, "Device");
 
+	for (int i = 0; i < NUM_DLC; i++) {
+
 	options = g_hash_table_new(g_str_hash, g_str_equal);
 	if (options == NULL)
 		goto error;
@@ -192,7 +194,7 @@ static void modem_initialize(struct ofono_modem *modem)
 
 	int fd = 999;
 	if (!use_usb) {
-		device = "/dev/motmdm1"; /* Not a tty device */
+		device = devices[i]; /* Not a tty device */
 		fd = open(device, O_RDWR);
 		io = g_io_channel_unix_new(fd);
  	} else {
@@ -220,7 +222,6 @@ static void modem_initialize(struct ofono_modem *modem)
 
 	//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
 
-	for (int i = 0; i < NUM_DLC; i++) {
 		data->dlcs[i] = chat;
 
 		if (getenv("OFONO_AT_DEBUG")) {
@@ -260,6 +261,8 @@ static int motmdm_enable(struct ofono_modem *modem)
 		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
 	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
+	/* Expect :ERROR=8 */
+	g_at_chat_send(data->dlcs[INSMS_DLC], "AT", none_prefix, NULL, modem, NULL);
 
 
 	//write(fd, "AT+SCRN=0\r\n", 11);
@@ -315,6 +318,7 @@ static void motmdm_post_sim(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
+#if 0
 	ofono_ussd_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_forwarding_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_settings_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
@@ -327,6 +331,7 @@ static void motmdm_post_sim(struct ofono_modem *modem)
 	mw = ofono_message_waiting_create(modem);
 	if (mw)
 		ofono_message_waiting_register(mw);
+#endif
 }
 
 static struct ofono_modem_driver motmdm_driver = {
