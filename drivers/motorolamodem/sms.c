@@ -777,6 +777,7 @@ static void motorola_sms_initialized(struct ofono_sms *sms)
 
 	ofono_sms_register(sms);
 }
+#endif
 
 static void motorola_sms_not_supported(struct ofono_sms *sms)
 {
@@ -786,6 +787,7 @@ static void motorola_sms_not_supported(struct ofono_sms *sms)
 	ofono_sms_remove(sms);
 }
 
+#if 0
 static void motorola_cnmi_set_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
 	struct ofono_sms *sms = user_data;
@@ -994,7 +996,7 @@ static void motorola_cnmi_query_cb(gboolean ok, GAtResult *result, gpointer user
 
 out:
 	if (!supported)
-		return at_sms_not_supported(sms);
+		return motorola_sms_not_supported(sms);
 
 	g_motorola_chat_send(data->chat, buf, cnmi_prefix,
 			motorola_cnmi_set_cb, sms, NULL);
@@ -1166,7 +1168,7 @@ static void motorola_cpms_query_cb(gboolean ok, GAtResult *result,
 	}
 out:
 	if (!supported)
-		return at_sms_not_supported(sms);
+		return motorola_sms_not_supported(sms);
 
 	set_cmgf(sms);
 }
@@ -1198,7 +1200,7 @@ static void motorola_cmgf_query_cb(gboolean ok, GAtResult *result,
 
 out:
 	if (!supported)
-		return at_sms_not_supported(sms);
+		return motorola_sms_not_supported(sms);
 
 	g_at_chat_send(data->chat, "AT+CPMS=?", cpms_prefix,
 			motorola_cpms_query_cb, sms, NULL);
@@ -1250,7 +1252,7 @@ static void motorola_csms_status_cb(gboolean ok, GAtResult *result,
 
 out:
 	if (!supported)
-		return at_sms_not_supported(sms);
+		return motorola_sms_not_supported(sms);
 
 	/* Now query supported text format */
 	g_at_chat_send(data->chat, "AT+CMGF=?", cmgf_prefix,
@@ -1266,6 +1268,7 @@ static void motorola_csms_set_cb(gboolean ok, GAtResult *result,
 	g_at_chat_send(data->chat, "AT+CSMS?", csms_prefix,
 			motorola_csms_status_cb, sms, NULL);
 }
+#endif
 
 static void motorola_csms_query_cb(gboolean ok, GAtResult *result,
 				gpointer user_data)
@@ -1277,8 +1280,14 @@ static void motorola_csms_query_cb(gboolean ok, GAtResult *result,
 	int status_min, status_max;
 	char buf[128];
 
-	if (!ok)
-		return at_sms_not_supported(sms);
+	DBG("");
+
+	if (ok) {
+	  DBG("we expect failure");
+		return motorola_sms_not_supported(sms);
+	}
+
+	DBG("Ok, should have error?");
 
 	g_at_result_iter_init(&iter, result);
 
@@ -1295,11 +1304,8 @@ static void motorola_csms_query_cb(gboolean ok, GAtResult *result,
 	DBG("CSMS query parsed successfully");
 
 out:
-	snprintf(buf, sizeof(buf), "AT+CSMS=%d", cnma_supported ? 1 : 0);
-	g_at_chat_send(data->chat, buf, csms_prefix,
-			motorola_csms_set_cb, sms, NULL);
+	DBG("");
 }
-#endif
 
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 				void *user)
@@ -1315,10 +1321,8 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 
 	ofono_sms_set_data(sms, data);
 
-#if 0
-	g_at_chat_send(data->chat, "AT+CSMS=?", csms_prefix,
-			at_csms_query_cb, sms, NULL);
-#endif
+	g_at_chat_send(data->chat, "AT", csms_prefix,
+			motorola_csms_query_cb, sms, NULL);
 	
 	return 0;
 }
