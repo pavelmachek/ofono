@@ -1307,20 +1307,50 @@ out:
 	DBG("");
 }
 
+/*  */
+
+static void got_hex_pdu(struct ofono_sms *sms, const char *hexpdu)
+{
+	long pdu_len;
+	int tpdu_len;
+  	unsigned char pdu[176];
+
+	if (strlen(hexpdu) > sizeof(pdu) * 2) {
+		ofono_error("Bad PDU length in CDS notification");
+		return;
+	}
+
+	/*	for (tpdu_len = 0; tpdu_len < 159; tpdu_len++) */
+	  {
+	  printf("tpdu_len: %d\n", tpdu_len);
+	/* Decode pdu and notify about new SMS status report */
+	  decode_hex_own_buf(hexpdu, -1, &pdu_len, 0, pdu);
+	  tpdu_len = pdu_len - 8; /* FIXME: this is not correct */
+	DBG("Got new Status-Report PDU via CDS: %s, %d", hexpdu, tpdu_len);
+	  ofono_sms_deliver_notify(sms, pdu, pdu_len, tpdu_len);
+	}
+
+	if (0)
+		motorola_ack_delivery(sms);
+}
+
 static void insms_notify(GAtResult *result, gpointer user_data)
 {
-	struct ofono_modem *modem = user_data;
-	struct calypso_data *data = ofono_modem_get_data(modem);
+	struct ofono_sms *sms = user_data;
+
 	GAtResultIter iter;
 	const char *stat;
 	int enabled;
+	char *line;
 
 	g_at_result_iter_init(&iter, result);
 	/* g_at_result_iter_next_hexstring ? */
 	if (!g_at_result_iter_next(&iter, ""))
 		return;
 
-	DBG("insms notify: %s\n", g_at_result_iter_raw_line(&iter));
+	line = g_at_result_iter_raw_line(&iter);
+	DBG("insms notify: %s\n", line);
+	got_hex_pdu(sms, line);
 
 	if (!g_at_result_iter_next(&iter, "~+RSSI="))
 		return;
@@ -1353,7 +1383,12 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	g_at_chat_send(data->chat, "AT", csms_prefix,
 			motorola_csms_query_cb, sms, NULL);
 #endif
-	
+
+#if 0
+	/*	~+GCMT=318\r
+                          07912470338016000404B933330011911010122402409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE42ECFC965765D4D2FB340613A08FD06B9D36BF21BE42EB7EBFA3248EF2ED7F569BA0B640DCFCB207479CE7E83D620B83C8D6687E765771A447E839A6F719AED1AEB41EA32E8169BD968305018046787E969105CFE068DD373F61B749BD5723498EC367381ACE139A8F916A7D9AEB11E */
+	got_hex_pdu(sms, "07912470338016000404B933330011911010127042409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE42ECFC965765D4D2FB340613A08FD06B9D36BF21BE42EB7EBFA3248EF2ED7F569BA0B640DCFCB207479CE7E83D620B83C8D6687E765771A447E839A6F719AED1AEB41EA326846C3E564315018046787E969105CFE068DD373F61B749BD5723498EC367381ACE139A8F916A7D9AEB11E");
+#endif	
 	return 0;
 }
 
