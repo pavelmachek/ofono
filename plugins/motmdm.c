@@ -377,8 +377,8 @@ static struct ofono_modem_driver motmdm_driver = {
 
 static int motmdm_init(void)
 {
-  ofono_info("motmdm init\n");
-  DBG("motmdm init\n");
+	ofono_info("motmdm init\n");
+	DBG("motmdm init\n");
 	return ofono_modem_driver_register(&motmdm_driver);
 }
 
