@@ -1,4 +1,4 @@
-/*
+/* -*- linux-c -*-
  *
  *  oFono - Open Source Telephony
  *
@@ -79,6 +79,7 @@ struct motmdm_data {
 
 #define NUM_DLC 1 /* HACK */
 
+const int use_usb = 1;
 
 static const char *cpin_prefix[] = { "+CPIN:", NULL };
 static const char *cfun_prefix[] = { "+CFUN:", NULL };
@@ -177,6 +178,7 @@ static void setup_modem(struct ofono_modem *modem)
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
 	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", cfun_prefix, cfun_cb, modem, NULL);	
 	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", cfun_prefix, cfun_cb, modem, NULL);
 	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", scrn_prefix, cfun_cb, modem, NULL);
 
@@ -241,17 +243,16 @@ static void modem_initialize(struct ofono_modem *modem)
 	g_hash_table_insert(options, "Local", "off");
 	g_hash_table_insert(options, "RtsCts", "off");
 
-	device = "/dev/motmdm1"; /* Not a tty device */
-	//device = "/dev/ttyUSB4";
-	DBG("tty_open %s\n", device);
 	int fd = 999;
-	if (1)
-	{
-	  //int fd = open("/dev/motmdm1", O_RDWR);
-	  fd = open(device, O_RDWR);
-	  io = g_io_channel_unix_new(fd);
-	} else
-	  io = g_at_tty_open(device, options);
+	if (!use_usb) {
+		device = "/dev/motmdm1"; /* Not a tty device */
+		fd = open(device, O_RDWR);
+		io = g_io_channel_unix_new(fd);
+ 	} else {
+		device = "/dev/ttyUSB4";
+		io = g_at_tty_open(device, options);
+	}
+	DBG("opening %s\n", device);
 
 	g_hash_table_destroy(options);
 
@@ -273,15 +274,15 @@ static void modem_initialize(struct ofono_modem *modem)
 	//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
 
 	for (int i = 0; i < NUM_DLC; i++) {
-	  data->dlcs[i] = chat;
+		data->dlcs[i] = chat;
 
-	  if (getenv("OFONO_AT_DEBUG")) {
-	    DBG("debugging enabled\n");
+		if (getenv("OFONO_AT_DEBUG")) {
+			DBG("debugging enabled\n");
 			g_at_chat_set_debug(data->dlcs[i], motmdm_debug,
-							debug_prefixes[i]);
-	  }
+					    debug_prefixes[i]);
+		}
 		else
-		  DBG("debug not enabled\n");
+			DBG("debug not enabled\n");
 	}
 
 	setup_modem(modem);
