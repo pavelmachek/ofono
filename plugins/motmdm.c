@@ -165,32 +165,6 @@ static void scrn_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	DBG("");
 }
 
-static void setup_modem(struct ofono_modem *modem)
-{
-	struct motmdm_data *data = ofono_modem_get_data(modem);
-	int i;
-
-	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! start\n");
-
-	/* AT+SCRN=0 to disable notifications. */
-	/* Test parsing of incoming stuff */
-
-	/* CSTAT tells us when SMS & Phonebook are ready to be used */
-	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
-				FALSE, modem, NULL);
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
-	if (use_usb)
-		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
-
-
-
-	//write(fd, "AT+SCRN=0\r\n", 11);
-	//g_at_io_write(data->dlcs[VOICE_DLC]->io, "AT+SCRN=0\r\n", 11);
-
-	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
-}
-
 static void modem_initialize(struct ofono_modem *modem)
 {
 	GAtSyntax *syntax;
@@ -258,13 +232,6 @@ static void modem_initialize(struct ofono_modem *modem)
 			DBG("debug not enabled\n");
 	}
 
-	setup_modem(modem);
-
-	ofono_modem_set_powered(modem, TRUE);
-
-	//g_at_chat_send(chat, "AT", NULL, NULL, NULL, NULL);
-	//DBG("AT sent?\n");
-
 	return;
 
 error:
@@ -276,9 +243,34 @@ error:
 static int motmdm_enable(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
+	int i;
 
 	modem_initialize(modem);
 
+	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! start\n");
+
+	/* AT+SCRN=0 to disable notifications. */
+	/* Test parsing of incoming stuff */
+
+	/* CSTAT tells us when SMS & Phonebook are ready to be used */
+	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
+				FALSE, modem, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
+	if (use_usb)
+		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
+
+
+
+	//write(fd, "AT+SCRN=0\r\n", 11);
+	//g_at_io_write(data->dlcs[VOICE_DLC]->io, "AT+SCRN=0\r\n", 11);
+
+	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
+
+	ofono_modem_set_powered(modem, TRUE);
+
+	//g_at_chat_send(chat, "AT", NULL, NULL, NULL, NULL);
+	//DBG("AT sent?\n");
 	return 0;
 }
 
