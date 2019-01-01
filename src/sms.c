@@ -2018,6 +2018,7 @@ void ofono_sms_register(struct ofono_sms *sms)
 	const char *path = __ofono_atom_get_path(sms->atom);
 	struct ofono_sim *sim;
 
+	DBG("");
 	if (!g_dbus_register_interface(conn, path,
 					OFONO_MESSAGE_MANAGER_INTERFACE,
 					sms_manager_methods,
@@ -2066,6 +2067,7 @@ void ofono_sms_register(struct ofono_sms *sms)
 
 	sms_restore_tx_queue(sms);
 
+	DBG("");
 	sms->text_handlers = __ofono_watchlist_new(g_free);
 	sms->datagram_handlers = __ofono_watchlist_new(g_free);
 

@@ -47,7 +47,6 @@ static const char *cgsms_prefix[] = { "+CGSMS:", NULL };
 static const char *csms_prefix[] = { "+CSMS:", NULL };
 static const char *cmgf_prefix[] = { "+CMGF:", NULL };
 static const char *cpms_prefix[] = { "+CPMS:", NULL };
-static const char *cnmi_prefix[] = { "+CNMI:", NULL };
 static const char *cmgs_prefix[] = { "+CMGS:", NULL };
 static const char *cmgl_prefix[] = { "+CMGL:", NULL };
 static const char *none_prefix[] = { NULL };
@@ -775,7 +774,6 @@ static void motorola_sms_initialized(struct ofono_sms *sms)
 	else
 		motorola_cmgl_set_cpms(sms, data->incoming);
 
-	ofono_sms_register(sms);
 }
 #endif
 
@@ -788,124 +786,6 @@ static void motorola_sms_not_supported(struct ofono_sms *sms)
 }
 
 #if 0
-static void motorola_cnmi_set_cb(gboolean ok, GAtResult *result, gpointer user_data)
-{
-	struct ofono_sms *sms = user_data;
-
-	if (!ok)
-		return motorola_sms_not_supported(sms);
-
-	motorola_sms_initialized(sms);
-}
-
-static inline char wanted_cnmi(int supported, const char *pref)
-{
-	while (*pref) {
-		if (supported & (1 << (*pref - '0')))
-			return *pref;
-
-		pref++;
-	}
-
-	return '\0';
-}
-
-static inline gboolean append_cnmi_element(char *buf, int *len, int cap,
-						const char *wanted,
-						gboolean last)
-{
-	char setting = wanted_cnmi(cap, wanted);
-
-	if (!setting)
-		return FALSE;
-
-	buf[*len] = setting;
-
-	if (last)
-		buf[*len + 1] = '\0';
-	else
-		buf[*len + 1] = ',';
-
-	*len += 2;
-
-	return TRUE;
-}
-
-static gboolean build_cnmi_string(char *buf, int *cnmi_opts,
-					struct sms_data *data)
-{
-	const char *mode;
-	int len = sprintf(buf, "AT+CNMI=");
-
-	DBG("");
-
-	switch (data->vendor) {
-	case OFONO_VENDOR_GOBI:
-	case OFONO_VENDOR_QUALCOMM_MSM:
-	case OFONO_VENDOR_NOVATEL:
-	case OFONO_VENDOR_HUAWEI:
-	case OFONO_VENDOR_ZTE:
-	case OFONO_VENDOR_SIMCOM:
-		/* MSM devices advertise support for mode 2, but return an
-		 * error if we attempt to actually use it. */
-		mode = "1";
-		break;
-	default:
-		/* Sounds like 2 is the sanest mode */
-		mode = "2310";
-		break;
-	}
-
-	if (!append_cnmi_element(buf, &len, cnmi_opts[0], mode, FALSE))
-		return FALSE;
-
-	/* Prefer to deliver SMS via +CMT if CNMA is supported */
-	if (!append_cnmi_element(buf, &len, cnmi_opts[1],
-					data->cnma_enabled ? "21" : "1", FALSE))
-		return FALSE;
-
-	switch (data->vendor) {
-	case OFONO_VENDOR_GEMALTO:
-		mode = "0";
-		break;
-	default:
-		/* Sounds like 2 is the sanest mode */
-		mode = "20";
-		break;
-	}
-
-	/* Always deliver CB via +CBM, otherwise don't deliver at all */
-	if (!append_cnmi_element(buf, &len, cnmi_opts[2], mode, FALSE))
-		return FALSE;
-
-	/*
-	 * Some manufacturers seem to have trouble with delivery via +CDS.
-	 * They report the status report properly, however refuse to +CNMA
-	 * ack it with error "CNMA not expected."  However, not acking it
-	 * sends the device into la-la land.
-	 */
-	switch (data->vendor) {
-	case OFONO_VENDOR_NOVATEL:
-		mode = "20";
-		break;
-	default:
-		mode = "120";
-		break;
-	}
-
-	/*
-	 * Try to deliver Status-Reports via +CDS, then CDSI or don't
-	 * deliver at all
-	 * */
-	if (!append_cnmi_element(buf, &len, cnmi_opts[3], mode, FALSE))
-		return FALSE;
-
-	/* Don't care about buffering, 0 seems safer */
-	if (!append_cnmi_element(buf, &len, cnmi_opts[4], "01", TRUE))
-		return FALSE;
-
-	return TRUE;
-}
 
 static void construct_ack_pdu(struct sms_data *d)
 {
@@ -938,77 +818,6 @@ err:
 	ofono_error("Unable to construct Deliver ACK PDU");
 }
 
-static void motorola_cnmi_query_cb(gboolean ok, GAtResult *result, gpointer user_data)
-{
-	struct ofono_sms *sms = user_data;
-	struct sms_data *data = ofono_sms_get_data(sms);
-	GAtResultIter iter;
-	int cnmi_opts[5]; /* See 27.005 Section 3.4.1 */
-	int opt;
-	int mode;
-	gboolean supported = FALSE;
-	char buf[128];
-
-	if (!ok)
-		goto out;
-
-	memset(cnmi_opts, 0, sizeof(cnmi_opts));
-
-	g_at_result_iter_init(&iter, result);
-
-	if (!g_at_result_iter_next(&iter, "+CNMI:"))
-		goto out;
-
-	for (opt = 0; opt < 5; opt++) {
-		int min, max;
-
-		if (!g_at_result_iter_open_list(&iter))
-			goto out;
-
-		while (g_at_result_iter_next_range(&iter, &min, &max)) {
-			for (mode = min; mode <= max; mode++)
-				cnmi_opts[opt] |= 1 << mode;
-		}
-
-		if (!g_at_result_iter_close_list(&iter))
-			goto out;
-	}
-
-	if (build_cnmi_string(buf, cnmi_opts, data))
-		supported = TRUE;
-
-	/* support for ack pdu is not working */
-	switch (data->vendor) {
-	case OFONO_VENDOR_IFX:
-	case OFONO_VENDOR_GOBI:
-	case OFONO_VENDOR_ZTE:
-	case OFONO_VENDOR_ICERA:
-	case OFONO_VENDOR_HUAWEI:
-	case OFONO_VENDOR_NOVATEL:
-	case OFONO_VENDOR_OPTION_HSO:
-		goto out;
-	default:
-		break;
-	}
-
-	if (data->cnma_enabled)
-		construct_ack_pdu(data);
-
-out:
-	if (!supported)
-		return motorola_sms_not_supported(sms);
-
-	g_motorola_chat_send(data->chat, buf, cnmi_prefix,
-			motorola_cnmi_set_cb, sms, NULL);
-}
-
-static void motorola_query_cnmi(struct ofono_sms *sms)
-{
-	struct sms_data *data = ofono_sms_get_data(sms);
-
-	g_at_chat_send(data->chat, "AT+CNMI=?", cnmi_prefix,
-			at_cnmi_query_cb, sms, NULL);
-}
 
 static void motorola_cpms_set_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
@@ -1334,6 +1143,8 @@ static void got_hex_pdu(struct ofono_sms *sms, const char *hexpdu)
 		motorola_ack_delivery(sms);
 }
 
+static int registered;
+
 static void insms_notify(GAtResult *result, gpointer user_data)
 {
 	struct ofono_sms *sms = user_data;
@@ -1350,6 +1161,12 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 
 	line = g_at_result_iter_raw_line(&iter);
 	DBG("insms notify: %s\n", line);
+
+	if (!registered) {
+	  registered = 1;
+	  ofono_sms_register(sms); /* FIXME: gross hack! */
+	}
+
 	got_hex_pdu(sms, line);
 #if 0
 	if (!g_at_result_iter_next(&iter, "~+RSSI="))
@@ -1385,7 +1202,7 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 			motorola_csms_query_cb, sms, NULL);
 #endif
 
-#if 1
+#if 0
 	/*	~+GCMT=318\r
                           07912470338016000404B933330011911010122402409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE42ECFC965765D4D2FB340613A08FD06B9D36BF21BE42EB7EBFA3248EF2ED7F569BA0B640DCFCB207479CE7E83D620B83C8D6687E765771A447E839A6F719AED1AEB41EA32E8169BD968305018046787E969105CFE068DD373F61B749BD5723498EC367381ACE139A8F916A7D9AEB11E */
 	got_hex_pdu(sms, "07912470338016000404B933330011911010127042409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE42ECFC965765D4D2FB340613A08FD06B9D36BF21BE42EB7EBFA3248EF2ED7F569BA0B640DCFCB207479CE7E83D620B83C8D6687E765771A447E839A6F719AED1AEB41EA326846C3E564315018046787E969105CFE068DD373F61B749BD5723498EC367381ACE139A8F916A7D9AEB11E");
