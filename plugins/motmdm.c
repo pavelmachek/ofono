@@ -302,9 +302,9 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-	ofono_devinfo_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
-	data->sim = ofono_sim_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
-	ofono_voicecall_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_devinfo_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
+	data->sim = ofono_sim_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_voicecall_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
@@ -316,14 +316,14 @@ static void motmdm_post_sim(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-	ofono_ussd_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
-	ofono_call_forwarding_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
-	ofono_call_settings_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_ussd_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_call_forwarding_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_call_settings_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_netreg_create(modem, OFONO_VENDOR_CALYPSO, "atmodem",
 				data->dlcs[NETREG_DLC]);
-	ofono_call_meter_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
-	ofono_call_barring_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
-	ofono_call_volume_create(modem, 0, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_call_meter_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_call_barring_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_call_volume_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 
 	mw = ofono_message_waiting_create(modem);
 	if (mw)
