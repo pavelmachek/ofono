@@ -1351,7 +1351,7 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 	line = g_at_result_iter_raw_line(&iter);
 	DBG("insms notify: %s\n", line);
 	got_hex_pdu(sms, line);
-
+#if 0
 	if (!g_at_result_iter_next(&iter, "~+RSSI="))
 		return;
 
@@ -1361,6 +1361,7 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 	    return;
 	  //DBG("signal changes %d %d\n", i, enabled);
 	}
+#endif
 }
 
 
