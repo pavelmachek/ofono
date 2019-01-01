@@ -1162,11 +1162,6 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 	line = g_at_result_iter_raw_line(&iter);
 	DBG("insms notify: %s\n", line);
 
-	if (!registered) {
-	  registered = 1;
-	  ofono_sms_register(sms); /* FIXME: gross hack! */
-	}
-
 	got_hex_pdu(sms, line);
 #if 0
 	if (!g_at_result_iter_next(&iter, "~+RSSI="))
@@ -1181,6 +1176,10 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 #endif
 }
 
+void motorola_sms_finish_probe(struct ofono_sms *sms)
+{
+	ofono_sms_register(sms);
+}
 
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 				void *user)
