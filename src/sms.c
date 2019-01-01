@@ -1315,12 +1315,14 @@ static void dispatch_text_message(struct ofono_sms *sms,
 	if (cls == SMS_CLASS_0)
 		return;
 
+	if (sms->text_handlers) {
 	for (l = sms->text_handlers->items; l; l = l->next) {
 		h = l->data;
 		notify = h->item.notify;
 
 		notify(str, &remote, &local, message, h->item.notify_data);
 	}
+	} else DBG("No text handlers, noone to notify about incoming SMS");
 
 	__ofono_history_sms_received(modem, uuid, str, &remote, &local,
 					message);
