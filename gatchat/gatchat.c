@@ -1191,7 +1191,7 @@ static guint at_chat_register(struct at_chat *chat, guint group,
 	if (func == NULL)
 		return 0;
 
-	if (prefix == NULL || strlen(prefix) == 0)
+	if (prefix == NULL)
 		return 0;
 
 	notify = g_hash_table_lookup(chat->notify_list, prefix);

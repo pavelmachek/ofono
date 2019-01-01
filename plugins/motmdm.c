@@ -156,9 +156,12 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 	const char *stat;
 	int enabled;
 
-	DBG("insms notify\n");
-
 	g_at_result_iter_init(&iter, result);
+	/* g_at_result_iter_next_hexstring ? */
+	if (!g_at_result_iter_next(&iter, ""))
+		return;
+
+	DBG("insms notify: %s\n", g_at_result_iter_raw_line(&iter));
 
 	if (!g_at_result_iter_next(&iter, "~+RSSI="))
 		return;
@@ -283,7 +286,7 @@ static int motmdm_enable(struct ofono_modem *modem)
 		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
 	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
-	g_at_chat_register(data->dlcs[INSMS_DLC], ":ERR", insms_notify,
+	g_at_chat_register(data->dlcs[INSMS_DLC], "", insms_notify,
 				FALSE, modem, NULL);
 	
 	/* Expect :ERROR=8 */
