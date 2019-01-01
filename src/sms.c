@@ -1363,6 +1363,8 @@ static void sms_dispatch(struct ofono_sms *sms, GSList *sms_list)
 		int csrc = -1;
 		gboolean is_8bit;
 
+		DBG("message list...");
+
 		s = l->data;
 		dcs = s->deliver.dcs;
 
@@ -1406,6 +1408,7 @@ static void sms_dispatch(struct ofono_sms *sms, GSList *sms_list)
 		}
 	}
 
+	DBG("msgid");
 	if (!compute_incoming_msgid(sms_list, &uuid))
 		return;
 
@@ -1435,6 +1438,8 @@ static void sms_dispatch(struct ofono_sms *sms, GSList *sms_list)
 
 		if (message == NULL)
 			return;
+
+		DBG("dispatch text, %s", message);
 
 		dispatch_text_message(sms, &uuid, message, cls,
 					&s->deliver.oaddr, &s->deliver.scts);
