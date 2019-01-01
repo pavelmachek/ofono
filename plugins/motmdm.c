@@ -148,6 +148,28 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 	}
 }
 
+static void insms_notify(GAtResult *result, gpointer user_data)
+{
+	struct ofono_modem *modem = user_data;
+	struct calypso_data *data = ofono_modem_get_data(modem);
+	GAtResultIter iter;
+	const char *stat;
+	int enabled;
+
+	DBG("insms notify\n");
+
+	g_at_result_iter_init(&iter, result);
+
+	if (!g_at_result_iter_next(&iter, "~+RSSI="))
+		return;
+
+	for (int i = 0; i < 7; i++) {
+	/* 7 numbers */
+	  if (!g_at_result_iter_next_number(&iter, &enabled))
+	    return;
+	  //DBG("signal changes %d %d\n", i, enabled);
+	}
+}
 
 static void cfun_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
@@ -261,6 +283,9 @@ static int motmdm_enable(struct ofono_modem *modem)
 		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
 	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
+	g_at_chat_register(data->dlcs[INSMS_DLC], ":ERR", insms_notify,
+				FALSE, modem, NULL);
+	
 	/* Expect :ERROR=8 */
 	g_at_chat_send(data->dlcs[INSMS_DLC], "AT", none_prefix, NULL, modem, NULL);
 
