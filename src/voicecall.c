@@ -2960,6 +2960,7 @@ struct ofono_voicecall *ofono_voicecall_create(struct ofono_modem *modem,
 
 	vc->toneq = g_queue_new();
 
+	DBG("Add atom");
 	vc->atom = __ofono_modem_add_atom(modem, OFONO_ATOM_TYPE_VOICECALL,
 						voicecall_remove, vc);
 
@@ -2972,9 +2973,11 @@ struct ofono_voicecall *ofono_voicecall_create(struct ofono_modem *modem,
 		if (drv->probe(vc, vendor, data) < 0)
 			continue;
 
+		DBG("have driver");
 		vc->driver = drv;
 		break;
 	}
+	DBG("returning");
 
 	return vc;
 }

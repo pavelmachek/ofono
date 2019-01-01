@@ -399,6 +399,8 @@ static void at_dial(struct ofono_voicecall *vc,
 	struct cb_data *cbd = cb_data_new(cb, data);
 	char buf[256];
 
+	DBG("");
+
 	cbd->user = vc;
 
 	if (ph->type == 145)
@@ -1101,6 +1103,8 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 {
 	GAtChat *chat = data;
 	struct voicecall_data *vd;
+
+	DBG();
 
 	vd = g_try_new0(struct voicecall_data, 1);
 	if (vd == NULL)
