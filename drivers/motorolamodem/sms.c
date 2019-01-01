@@ -1307,6 +1307,33 @@ out:
 	DBG("");
 }
 
+static void insms_notify(GAtResult *result, gpointer user_data)
+{
+	struct ofono_modem *modem = user_data;
+	struct calypso_data *data = ofono_modem_get_data(modem);
+	GAtResultIter iter;
+	const char *stat;
+	int enabled;
+
+	g_at_result_iter_init(&iter, result);
+	/* g_at_result_iter_next_hexstring ? */
+	if (!g_at_result_iter_next(&iter, ""))
+		return;
+
+	DBG("insms notify: %s\n", g_at_result_iter_raw_line(&iter));
+
+	if (!g_at_result_iter_next(&iter, "~+RSSI="))
+		return;
+
+	for (int i = 0; i < 7; i++) {
+	/* 7 numbers */
+	  if (!g_at_result_iter_next_number(&iter, &enabled))
+	    return;
+	  //DBG("signal changes %d %d\n", i, enabled);
+	}
+}
+
+
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 				void *user)
 {
@@ -1321,8 +1348,11 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 
 	ofono_sms_set_data(sms, data);
 
+	g_at_chat_register(data->chat, "", insms_notify, FALSE, sms, NULL);
+#if 0
 	g_at_chat_send(data->chat, "AT", csms_prefix,
 			motorola_csms_query_cb, sms, NULL);
+#endif
 	
 	return 0;
 }

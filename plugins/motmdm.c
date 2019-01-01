@@ -90,7 +90,6 @@ static void motmdm_debug(const char *str, void *user_data)
 {
 	const char *prefix = user_data;
 
-	DBG("motmdm_debug -- ####################################################\n");
 	ofono_info("%s%s", prefix, str);
 }
 
@@ -136,32 +135,6 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 	//DBG("signal changes\n");
 
 	g_at_result_iter_init(&iter, result);
-
-	if (!g_at_result_iter_next(&iter, "~+RSSI="))
-		return;
-
-	for (int i = 0; i < 7; i++) {
-	/* 7 numbers */
-	  if (!g_at_result_iter_next_number(&iter, &enabled))
-	    return;
-	  //DBG("signal changes %d %d\n", i, enabled);
-	}
-}
-
-static void insms_notify(GAtResult *result, gpointer user_data)
-{
-	struct ofono_modem *modem = user_data;
-	struct calypso_data *data = ofono_modem_get_data(modem);
-	GAtResultIter iter;
-	const char *stat;
-	int enabled;
-
-	g_at_result_iter_init(&iter, result);
-	/* g_at_result_iter_next_hexstring ? */
-	if (!g_at_result_iter_next(&iter, ""))
-		return;
-
-	DBG("insms notify: %s\n", g_at_result_iter_raw_line(&iter));
 
 	if (!g_at_result_iter_next(&iter, "~+RSSI="))
 		return;
@@ -286,11 +259,11 @@ static int motmdm_enable(struct ofono_modem *modem)
 		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
 	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
-	g_at_chat_register(data->dlcs[INSMS_DLC], "", insms_notify,
-				FALSE, modem, NULL);
+#if 0
 	
 	/* Expect :ERROR=8 */
 	g_at_chat_send(data->dlcs[INSMS_DLC], "AT", none_prefix, NULL, modem, NULL);
+#endif
 
 
 	//write(fd, "AT+SCRN=0\r\n", 11);
@@ -335,7 +308,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 	data->sim = ofono_sim_create(modem, OFONO_VENDOR_MOTMDM, "nonexistingfoomodem", data->dlcs[VOICE_DLC]);
 	ofono_voicecall_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
-	ofono_sms_create(modem, OFONO_VENDOR_MOTMDM, "motorolamodem", data->dlcs[VOICE_DLC]);
+	ofono_sms_create(modem, OFONO_VENDOR_MOTMDM, "motorolamodem", data->dlcs[INSMS_DLC]);
 
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
