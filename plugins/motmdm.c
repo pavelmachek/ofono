@@ -79,7 +79,7 @@ struct motmdm_data {
 
 #define NUM_DLC 1 /* HACK */
 
-const int use_usb = 1;
+const int use_usb = 0;
 
 static const char *cpin_prefix[] = { "+CPIN:", NULL };
 static const char *cfun_prefix[] = { "+CFUN:", NULL };
@@ -178,9 +178,10 @@ static void setup_modem(struct ofono_modem *modem)
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
 	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", scrn_prefix, scrn_cb, modem, NULL);	
 	g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
 	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", cfun_prefix, cfun_cb, modem, NULL);
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", scrn_prefix, scrn_cb, modem, NULL);
+
 
 
 	//write(fd, "AT+SCRN=0\r\n", 11);
