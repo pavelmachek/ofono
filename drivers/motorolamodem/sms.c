@@ -41,7 +41,7 @@
 
 #include "motorolamodem.h"
 
-#if 0
+
 static const char *csca_prefix[] = { "+CSCA:", NULL };
 static const char *cgsms_prefix[] = { "+CGSMS:", NULL };
 static const char *csms_prefix[] = { "+CSMS:", NULL };
@@ -52,6 +52,7 @@ static const char *cmgs_prefix[] = { "+CMGS:", NULL };
 static const char *cmgl_prefix[] = { "+CMGL:", NULL };
 static const char *none_prefix[] = { NULL };
 
+#if 0
 static gboolean set_cmgf(gpointer user_data);
 static gboolean set_cpms(gpointer user_data);
 static void motorola_cmgl_set_cpms(struct ofono_sms *sms, int store);
@@ -66,6 +67,7 @@ static const char *storages[] = {
 	"SR",
 	"BM",
 };
+#endif
 
 struct sms_data {
 	int store;
@@ -80,6 +82,7 @@ struct sms_data {
 	unsigned int vendor;
 };
 
+#if 0
 struct cpms_request {
 	struct ofono_sms *sms;
 	int store;
@@ -1296,6 +1299,7 @@ out:
 	g_at_chat_send(data->chat, buf, csms_prefix,
 			motorola_csms_set_cb, sms, NULL);
 }
+#endif
 
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 				void *user)
@@ -1303,15 +1307,19 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	GAtChat *chat = user;
 	struct sms_data *data;
 
+	DBG("");
+
 	data = g_new0(struct sms_data, 1);
 	data->chat = g_at_chat_clone(chat);
 	data->vendor = vendor;
 
 	ofono_sms_set_data(sms, data);
 
+#if 0
 	g_at_chat_send(data->chat, "AT+CSMS=?", csms_prefix,
 			at_csms_query_cb, sms, NULL);
-
+#endif
+	
 	return 0;
 }
 
@@ -1331,14 +1339,16 @@ static void motorola_sms_remove(struct ofono_sms *sms)
 }
 
 static const struct ofono_sms_driver driver = {
-	.name		= "atmodem",
+	.name		= "motorolamodem",
 	.probe		= motorola_sms_probe,
 	.remove		= motorola_sms_remove,
+#if 0
 	.sca_query	= motorola_csca_query,
 	.sca_set	= motorola_csca_set,
 	.submit		= motorola_cmgs,
 	.bearer_query	= motorola_cgsms_query,
 	.bearer_set	= motorola_cgsms_set,
+#endif
 };
 
 void motorola_sms_init(void)
@@ -1350,4 +1360,3 @@ void motorola_sms_exit(void)
 {
 	ofono_sms_driver_unregister(&driver);
 }
-#endif

@@ -333,8 +333,9 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-	data->sim = ofono_sim_create(modem, OFONO_VENDOR_MOTMDM, "foomodem", data->dlcs[VOICE_DLC]);
+	data->sim = ofono_sim_create(modem, OFONO_VENDOR_MOTMDM, "nonexistingfoomodem", data->dlcs[VOICE_DLC]);
 	ofono_voicecall_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
+	ofono_sms_create(modem, OFONO_VENDOR_MOTMDM, "motorolamodem", data->dlcs[VOICE_DLC]);
 
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
