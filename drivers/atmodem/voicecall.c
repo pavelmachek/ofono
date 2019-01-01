@@ -269,8 +269,11 @@ static gboolean poll_clcc(gpointer user_data)
 	struct ofono_voicecall *vc = user_data;
 	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
 
+	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
+	  /* FIXME: supported by hw, but don't know how to parse it yet */
 	g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix,
 				clcc_poll_cb, vc, NULL);
+	}
 
 	vd->clcc_source = 0;
 
@@ -1116,12 +1119,18 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 
 	ofono_voicecall_set_data(vc, vd);
 
-	g_at_chat_send(vd->chat, "AT+CRC=1", NULL, NULL, NULL, NULL);
+	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
+		g_at_chat_send(vd->chat, "AT+CRC=1", NULL, NULL, NULL, NULL);
+	}
 	g_at_chat_send(vd->chat, "AT+CLIP=1", NULL, NULL, NULL, NULL);
-	g_at_chat_send(vd->chat, "AT+CDIP=1", NULL, NULL, NULL, NULL);
-	g_at_chat_send(vd->chat, "AT+CNAP=1", NULL, NULL, NULL, NULL);
+	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
+		g_at_chat_send(vd->chat, "AT+CDIP=1", NULL, NULL, NULL, NULL);
+		g_at_chat_send(vd->chat, "AT+CNAP=1", NULL, NULL, NULL, NULL);
+	}
 
 	switch (vd->vendor) {
+	case OFONO_VENDOR_MOTMDM:
+		break;
 	case OFONO_VENDOR_QUALCOMM_MSM:
 	case OFONO_VENDOR_SIMCOM:
 		g_at_chat_send(vd->chat, "AT+COLP=0", NULL, NULL, NULL, NULL);
@@ -1131,9 +1140,11 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 		break;
 	}
 
+	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
 	g_at_chat_send(vd->chat, "AT+CSSN=1,1", NULL, NULL, NULL, NULL);
 	g_at_chat_send(vd->chat, "AT+VTD?", NULL,
 				vtd_query_cb, vc, NULL);
+	}
 	g_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
 				at_voicecall_initialized, vc, NULL);
 
