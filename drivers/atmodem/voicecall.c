@@ -266,6 +266,7 @@ poll_again:
 
 static void send_clcc(struct voicecall_data *vd, struct ofono_voicecall *vc)
 {
+  if (vd->vendor != OFONO_VENDOR_MOTMDM)
 	g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix, clcc_poll_cb, vc, NULL);
 }
 
@@ -1093,6 +1094,7 @@ static void at_voicecall_initialized(gboolean ok, GAtResult *result,
 	ofono_voicecall_register(vc);
 
 	/* Populate the call list */
+	if (vd->vendor != OFONO_VENDOR_MOTMDM)
 	g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix, clcc_cb, vc, NULL);
 }
 
