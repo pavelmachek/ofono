@@ -509,8 +509,6 @@ endif
 builtin_modules += motorolamodem
 builtin_sources += drivers/motorolamodem/motorolamodem.c \
 			drivers/motorolamodem/motorolamodem.h \
-			drivers/motorolamodem/gprs-context.c \
-			drivers/motorolamodem/gprs-context.h \
 			drivers/motorolamodem/sms.c
 
 

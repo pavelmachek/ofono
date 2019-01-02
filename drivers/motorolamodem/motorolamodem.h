@@ -21,8 +21,5 @@
 
 #include <drivers/atmodem/atutil.h>
 
-extern void sw_gprs_context_init(void);
-extern void sw_gprs_context_exit(void);
-
 extern void motorola_sms_init(void);
 extern void motorola_sms_exit(void);
