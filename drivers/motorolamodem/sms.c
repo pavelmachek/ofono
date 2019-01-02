@@ -1196,8 +1196,12 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	ofono_sms_set_data(sms, data);
 
 	g_at_chat_register(data->chat, "", insms_notify, FALSE, sms, NULL);
+
 #if 0
-	g_at_chat_send(data->chat, "AT", csms_prefix,
+	/* Tony says this acks sms, I don't see the effect */
+	g_at_chat_send(data->chat, "AT+GCNMA=1", csms_prefix,
+			motorola_csms_query_cb, sms, NULL);
+	g_at_chat_send(data->chat, "AT+CNMA=0,0", csms_prefix,
 			motorola_csms_query_cb, sms, NULL);
 #endif
 
