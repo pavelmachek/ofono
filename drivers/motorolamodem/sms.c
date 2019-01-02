@@ -1176,11 +1176,6 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 #endif
 }
 
-void motorola_sms_finish_probe(struct ofono_sms *sms)
-{
-	ofono_sms_register(sms);
-}
-
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 				void *user)
 {
