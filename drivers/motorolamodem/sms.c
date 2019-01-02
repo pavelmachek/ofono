@@ -41,25 +41,12 @@
 
 #include "motorolamodem.h"
 
-
-static const char *csca_prefix[] = { "+CSCA:", NULL };
-static const char *cgsms_prefix[] = { "+CGSMS:", NULL };
 static const char *csms_prefix[] = { "+CSMS:", NULL };
-static const char *cmgf_prefix[] = { "+CMGF:", NULL };
-static const char *cpms_prefix[] = { "+CPMS:", NULL };
-static const char *cmgs_prefix[] = { "+CMGS:", NULL };
-static const char *cmgl_prefix[] = { "+CMGL:", NULL };
 static const char *none_prefix[] = { NULL };
 
 struct sms_data {
-	int store;
-	int incoming;
-	int retries;
-	gboolean expect_sr;
-	gboolean cnma_enabled;
 	char *cnma_ack_pdu;
 	int cnma_ack_pdu_len;
-	guint timeout_source;
 	GAtChat *chat;
 	unsigned int vendor;
 };
@@ -405,9 +392,6 @@ static void motorola_sms_remove(struct ofono_sms *sms)
 	struct sms_data *data = ofono_sms_get_data(sms);
 
 	l_free(data->cnma_ack_pdu);
-
-	if (data->timeout_source > 0)
-		g_source_remove(data->timeout_source);
 
 	g_at_chat_unref(data->chat);
 	g_free(data);
