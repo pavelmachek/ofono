@@ -766,7 +766,10 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 
 	g_at_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "+CLIP:"))
+	printf("Got clip...\n");
+
+	if (!g_at_result_iter_next(&iter, "+CLIP:") &&
+	    !g_at_result_iter_next(&iter, "~+CLIP="))
 		return;
 
 	if (!g_at_result_iter_next_string(&iter, &num))
@@ -1067,6 +1070,42 @@ static void vtd_query_cb(gboolean ok, GAtResult *result, gpointer user_data)
 		vd->tone_duration = duration * 100;
 }
 
+
+static void ciev_notify(GAtResult *result, gpointer user_data)
+{
+  	struct ofono_voicecall *vc = user_data;
+	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
+	int strength, ind;
+	GAtResultIter iter;
+
+	g_at_result_iter_init(&iter, result);
+
+	printf("Got ciev...\n");
+	if (!g_at_result_iter_next(&iter, "~+CIEV="))
+		return;
+
+	if (!g_at_result_iter_next_number(&iter, &ind))
+		return;
+
+	printf("Got ciev...: \n");
+	
+	if (ind != 1)
+		return;
+
+	if (!g_at_result_iter_next_number(&iter, &strength))
+		return;
+
+	printf("Got ciev 1,%d...: \n", strength);
+
+	switch (strength) {
+	case 4: /* call ringing */
+	  printf("Call ringing\n"); break;
+	case 0: /* call ends */
+	  printf("Call ends\n"); break;
+	}	   
+}
+
+
 static void at_voicecall_initialized(gboolean ok, GAtResult *result,
 					gpointer user_data)
 {
@@ -1078,6 +1117,9 @@ static void at_voicecall_initialized(gboolean ok, GAtResult *result,
 	g_at_chat_register(vd->chat, "RING", ring_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CRING:", cring_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CLIP:", clip_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "~+CLIP=", clip_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "~+CIEV=", ciev_notify, FALSE, vc, NULL);
+	
 	g_at_chat_register(vd->chat, "+CDIP:", cdip_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CNAP:", cnap_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CCWA:", ccwa_notify, FALSE, vc, NULL);
@@ -1148,6 +1190,7 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 	g_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
 				at_voicecall_initialized, vc, NULL);
 
+	
 	return 0;
 }
 
