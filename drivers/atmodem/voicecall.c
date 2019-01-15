@@ -1077,6 +1077,7 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
 	int strength, ind;
 	GAtResultIter iter;
+	struct ofono_call *call;
 
 	g_at_result_iter_init(&iter, result);
 
@@ -1099,8 +1100,24 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 
 	switch (strength) {
 	case 4: /* call ringing */
-	  printf("Call ringing\n"); break;
+	  printf("Call ringing\n");
+	  call = create_call(vc, 9, 1, CALL_STATUS_INCOMING, NULL, 128, 2);
+	  if (call == NULL) {
+		ofono_error("Couldn't create call, call management is fubar!");
+		return;
+	  }
+	  break;
 	case 0: /* call ends */
+	  /* 
+	l = g_slist_find_custom(vd->calls,
+				GINT_TO_POINTER(CALL_STATUS_INCOMING),
+				at_util_call_compare_by_status);
+
+	  
+	  reason = OFONO_DISCONNECT_REASON_REMOTE_HANGUP;
+	  if (!oc->type)
+	    ofono_voicecall_disconnected(vc, oc->id, reason, NULL);
+	  */
 	  printf("Call ends\n"); break;
 	}	   
 }
