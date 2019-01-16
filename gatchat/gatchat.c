@@ -482,6 +482,8 @@ static struct terminator_info terminator_table[] = {
 	{ "+CCWA:OK", -1, TRUE },
 	{ "D:OK", -1, TRUE },
 	{ "H:OK", -1, TRUE },
+	{ "D:ERROR", -1, FALSE },
+	{ "H:ERROR", -1, FALSE },
 	{ "+CLCC:", -1, TRUE },
 	{ ":OK", -1, TRUE },
 };

@@ -1078,6 +1078,7 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 	int strength, ind;
 	GAtResultIter iter;
 	struct ofono_call *call;
+	enum ofono_disconnect_reason reason;
 
 	g_at_result_iter_init(&iter, result);
 
@@ -1099,7 +1100,10 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 	printf("Got ciev 1,%d...: \n", strength);
 
 	switch (strength) {
-	case 4: /* call ringing */
+	case 7: /* outgoing call starts */
+	  printf("Outgoing notification, but ATD should have created it for us\n");
+	  break;
+	case 4: /* call incoming ringing */
 	  printf("Call ringing\n");
 	  call = create_call(vc, 9, 1, CALL_STATUS_INCOMING, NULL, 128, 2);
 	  if (call == NULL) {
@@ -1108,16 +1112,12 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 	  }
 	  break;
 	case 0: /* call ends */
-	  /* 
-	l = g_slist_find_custom(vd->calls,
-				GINT_TO_POINTER(CALL_STATUS_INCOMING),
-				at_util_call_compare_by_status);
-
+	  call = vd->calls->data;
 	  
 	  reason = OFONO_DISCONNECT_REASON_REMOTE_HANGUP;
-	  if (!oc->type)
-	    ofono_voicecall_disconnected(vc, oc->id, reason, NULL);
-	  */
+	  if (!call->type)
+	    ofono_voicecall_disconnected(vc, call->id, reason, NULL);
+
 	  printf("Call ends\n"); break;
 	}	   
 }
