@@ -303,6 +303,11 @@ static void got_hex_pdu(struct ofono_sms *sms, const char *hexpdu)
 	int tpdu_len;
   	unsigned char pdu[176];
 
+	if (hexpdu[0] == '~') {
+	  printf("PDU will be on next line?\n");
+	  return;
+	}
+
 	if (strlen(hexpdu) > sizeof(pdu) * 2) {
 		ofono_error("Bad PDU length in CDS notification");
 		return;
