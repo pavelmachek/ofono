@@ -752,6 +752,8 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 	GSList *l;
 	struct ofono_call *call;
 
+	printf("got clip, searching for incoming calls\n");
+
 	l = g_slist_find_custom(vd->calls,
 				GINT_TO_POINTER(CALL_STATUS_INCOMING),
 				at_util_call_compare_by_status);
@@ -1110,6 +1112,8 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 		ofono_error("Couldn't create call, call management is fubar!");
 		return;
 	  }
+	  /* FIXME: we should really do that at +CLIP callback .. when that works */
+	  ofono_voicecall_notify(vc, call);
 	  break;
 	case 0: /* call ends */
 	  call = vd->calls->data;
