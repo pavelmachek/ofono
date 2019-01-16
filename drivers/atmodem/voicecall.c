@@ -770,7 +770,7 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 
 	printf("Got clip...\n");
 
-	if (!g_at_result_iter_next(&iter, "+CLIP:") &&
+	if (/* !g_at_result_iter_next(&iter, "+CLIP:") && */
 	    !g_at_result_iter_next(&iter, "~+CLIP="))
 		return;
 
@@ -790,6 +790,8 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 	g_at_result_iter_skip_next(&iter);
 	g_at_result_iter_skip_next(&iter);
 
+	printf("parsed ok, num %s\n", num);
+
 	/* If we have CLI validity field, override our guessed value */
 	g_at_result_iter_next_number(&iter, &validity);
 
@@ -797,12 +799,16 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 
 	call = l->data;
 
+	printf("call %lx\n", call);
+	
 	strncpy(call->phone_number.number, num,
 		OFONO_MAX_PHONE_NUMBER_LENGTH);
 	call->phone_number.number[OFONO_MAX_PHONE_NUMBER_LENGTH] = '\0';
 	call->phone_number.type = type;
 	call->clip_validity = validity;
 
+	printf("call %lx, set up number, notify...\n", call);
+	
 	if (call->type == 0)
 		ofono_voicecall_notify(vc, call);
 
@@ -1112,8 +1118,10 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 		ofono_error("Couldn't create call, call management is fubar!");
 		return;
 	  }
+	  call->type = 0;
+	  vd->flags = FLAG_NEED_CLIP;
 	  /* FIXME: we should really do that at +CLIP callback .. when that works */
-	  ofono_voicecall_notify(vc, call);
+	  //ofono_voicecall_notify(vc, call);
 	  break;
 	case 0: /* call ends */
 	  call = vd->calls->data;
