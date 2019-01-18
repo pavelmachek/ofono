@@ -147,10 +147,13 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 		}
 	} else
 #endif
-	  {
-		/* Should be a safe fallback */
+	  if (0) {
+		/* Should be a safe fallback, documented, and works for me.
+		   Does not work for Tony. */
 		snprintf(buf, sizeof(buf), "AT+CNMA=0");
-	}
+	  } else {
+		snprintf(buf, sizeof(buf), "AT+GCNMA=1");
+	  }
 
 	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
 }
@@ -421,6 +424,11 @@ AT+GCNMA=1
 
 	*/
 	got_hex_pdu(sms, "07912470338016000404B933330011911010127042409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE42ECFC965765D4D2FB340613A08FD06B9D36BF21BE42EB7EBFA3248EF2ED7F569BA0B640DCFCB207479CE7E83D620B83C8D6687E765771A447E839A6F719AED1AEB41EA326846C3E564315018046787E969105CFE068DD373F61B749BD5723498EC367381ACE139A8F916A7D9AEB11E");
+
+	/* List of error codes seems to be at
+
+	   https://www.developershome.com/sms/resultCodes2.asp#16.2.1.1
+	 */
 #endif	
 	return 0;
 }
