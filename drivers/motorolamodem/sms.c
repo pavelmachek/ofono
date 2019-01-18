@@ -117,7 +117,14 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 
 	CALLBACK_WITH_FAILURE(cb, -1, user_data);
 }
+#endif
 
+static void at_cnma_cb(gboolean ok, GAtResult *result, gpointer user_data)
+{
+	if (!ok)
+		ofono_error("CNMA acknowledgement failed: "
+				"Further SMS reception is not guaranteed");
+}
 
 static inline void motorola_ack_delivery(struct ofono_sms *sms)
 {
@@ -125,7 +132,7 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	char buf[256];
 
 	DBG("");
-
+#if 0
 	/* We must acknowledge the PDU using CNMA */
 	if (data->cnma_ack_pdu) {
 		switch (data->vendor) {
@@ -138,7 +145,9 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 					data->cnma_ack_pdu);
 			break;
 		}
-	} else {
+	} else
+#endif
+	  {
 		/* Should be a safe fallback */
 		snprintf(buf, sizeof(buf), "AT+CNMA=0");
 	}
@@ -146,7 +155,7 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
 }
 
-
+#if 0
 static void motorola_cmt_notify(GAtResult *result, gpointer user_data)
 {
 	struct ofono_sms *sms = user_data;
@@ -223,8 +232,6 @@ static void motorola_sms_not_supported(struct ofono_sms *sms)
 	ofono_sms_remove(sms);
 }
 
-#if 0
-
 static void construct_ack_pdu(struct sms_data *d)
 {
 	struct sms ackpdu;
@@ -249,14 +256,14 @@ static void construct_ack_pdu(struct sms_data *d)
 	if (d->cnma_ack_pdu == NULL)
 		goto err;
 
+	printf("Have ack PDU: %s\n", d->cnma_ack_pdu);
+
 	d->cnma_ack_pdu_len = tpdu_len;
 	return;
 
 err:
 	ofono_error("Unable to construct Deliver ACK PDU");
 }
-
-#endif
 
 static void motorola_csms_query_cb(gboolean ok, GAtResult *result,
 				gpointer user_data)
@@ -322,9 +329,9 @@ static void got_hex_pdu(struct ofono_sms *sms, const char *hexpdu)
 	DBG("Got new Status-Report PDU via CDS: %s, %d", hexpdu, tpdu_len);
 	  ofono_sms_deliver_notify(sms, pdu, pdu_len, tpdu_len);
 	}
-
-	if (0)
-		motorola_ack_delivery(sms);
+#if 0
+	  construct_ack_pdu(ofono_sms_get_data(sms));
+#endif
 }
 
 static int registered;
@@ -347,6 +354,10 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 	DBG("insms notify: %s\n", line);
 
 	got_hex_pdu(sms, line);
+
+	if (1)
+		motorola_ack_delivery(sms);
+
 #if 0
 	if (!g_at_result_iter_next(&iter, "~+RSSI="))
 		return;
@@ -380,13 +391,35 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	/* Tony says this acks sms, I don't see the effect */
 	g_at_chat_send(data->chat, "AT+GCNMA=1", csms_prefix,
 			motorola_csms_query_cb, sms, NULL);
+	/* Weird. Now it says "+CMS=305". I'm pretty sure it did not do that before? */
 	g_at_chat_send(data->chat, "AT+CNMA=0,0", csms_prefix,
 			motorola_csms_query_cb, sms, NULL);
 #endif
 
 #if 0
 	/*	~+GCMT=318\r
-                          07912470338016000404B933330011911010122402409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE42ECFC965765D4D2FB340613A08FD06B9D36BF21BE42EB7EBFA3248EF2ED7F569BA0B640DCFCB207479CE7E83D620B83C8D6687E765771A447E839A6F719AED1AEB41EA32E8169BD968305018046787E969105CFE068DD373F61B749BD5723498EC367381ACE139A8F916A7D9AEB11E */
+                          07912470338016000404B933330011911010122402409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE42ECFC965765D4D2FB340613A08FD06B9D36BF21BE42EB7EBFA3248EF2ED7F569BA0B640DCFCB207479CE7E83D620B83C8D6687E765771A447E839A6F719AED1AEB41EA32E8169BD968305018046787E969105CFE068DD373F61B749BD5723498EC367381ACE139A8F916A7D9AEB11E 
+AT+GCNMA=1
++CMS=305
+AT+GCNMA=1
++GCMS=305
+07912470338016000004B933330011911061218380409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE4E
+
+07912470338016000004B933330011911061218380409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE42
+ECFC965765D4D2FB340613A08FD06B9D36BF21BE42EB7EBFA3248EF2ED7F569BA0B640DCFCB207479CE7E83D620B83C8D
+6687E765771A447E839A6F719AED1AEB41EA322886CBD16C335018046787E969105CFE068DD373F61B749BD5723498EC3
+67381ACE139A8F916A7D9AEB11E
+
+AT+GCNMA=1
+0000
+:ERROR=4
+AT+GCNMA=1
++GCNMA=OK
+
+  
+
+
+	*/
 	got_hex_pdu(sms, "07912470338016000404B933330011911010127042409BC4B7589E0791CB6E16686E2F83D0E539FB0D72A7D7EF761DE42ECFC965765D4D2FB340613A08FD06B9D36BF21BE42EB7EBFA3248EF2ED7F569BA0B640DCFCB207479CE7E83D620B83C8D6687E765771A447E839A6F719AED1AEB41EA326846C3E564315018046787E969105CFE068DD373F61B749BD5723498EC367381ACE139A8F916A7D9AEB11E");
 #endif	
 	return 0;
