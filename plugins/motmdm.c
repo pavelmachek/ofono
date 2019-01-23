@@ -126,11 +126,10 @@ static void motmdm_remove(struct ofono_modem *modem)
 
 static void cstat_notify(GAtResult *result, gpointer user_data)
 {
-	struct ofono_modem *modem = user_data;
-	struct calypso_data *data = ofono_modem_get_data(modem);
+	//struct ofono_modem *modem = user_data;
+	//struct motmdm_data *data = ofono_modem_get_data(modem);
 	GAtResultIter iter;
-	const char *stat;
-	int enabled;
+	int enabled, i;
 
 	//DBG("signal changes\n");
 
@@ -139,7 +138,6 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 	if (!g_at_result_iter_next(&iter, "~+RSSI="))
 		return;
 
-	int i;
 	for (i = 0; i < 7; i++) {
 	/* 7 numbers */
 	  if (!g_at_result_iter_next_number(&iter, &enabled))
@@ -150,16 +148,16 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 
 static void cfun_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
-	struct ofono_modem *modem = user_data;
-	struct motmdm_data *data = ofono_modem_get_data(modem);
+	//struct ofono_modem *modem = user_data;
+	//struct motmdm_data *data = ofono_modem_get_data(modem);
 
 	DBG("");
 }
 
 static void scrn_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
-	struct ofono_modem *modem = user_data;
-	struct motmdm_data *data = ofono_modem_get_data(modem);
+	//struct ofono_modem *modem = user_data;
+	//struct motmdm_data *data = ofono_modem_get_data(modem);
 
 	DBG("");
 }
@@ -172,12 +170,13 @@ static void modem_initialize(struct ofono_modem *modem)
 	GIOChannel *io;
 	GHashTable *options;
 	struct motmdm_data *data = ofono_modem_get_data(modem);
+	int i;
+	int fd = 999;
 
 	DBG("");
 
 	device = ofono_modem_get_string(modem, "Device");
 
-	int i;
 	for (i = 0; i < NUM_DLC; i++) {
 
 	options = g_hash_table_new(g_str_hash, g_str_equal);
@@ -192,7 +191,6 @@ static void modem_initialize(struct ofono_modem *modem)
 	g_hash_table_insert(options, "Local", "off");
 	g_hash_table_insert(options, "RtsCts", "off");
 
-	int fd = 999;
 	if (!use_usb) {
 		device = devices[i]; /* Not a tty device */
 		fd = open(device, O_RDWR);
@@ -244,7 +242,6 @@ error:
 static int motmdm_enable(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
-	int i;
 
 	modem_initialize(modem);
 
@@ -317,12 +314,11 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 static void motmdm_post_sim(struct ofono_modem *modem)
 {
+#if 0
 	struct motmdm_data *data = ofono_modem_get_data(modem);
-	struct ofono_message_waiting *mw;
 
 	DBG("%p", modem);
 
-#if 0
 	ofono_ussd_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_forwarding_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_settings_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
@@ -332,9 +328,12 @@ static void motmdm_post_sim(struct ofono_modem *modem)
 	ofono_call_barring_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_volume_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 
+	{
+	struct ofono_message_waiting *mw;
 	mw = ofono_message_waiting_create(modem);
 	if (mw)
 		ofono_message_waiting_register(mw);
+	}
 #endif
 }
 
