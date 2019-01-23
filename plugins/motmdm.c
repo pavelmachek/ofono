@@ -139,7 +139,8 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 	if (!g_at_result_iter_next(&iter, "~+RSSI="))
 		return;
 
-	for (int i = 0; i < 7; i++) {
+	int i;
+	for (i = 0; i < 7; i++) {
 	/* 7 numbers */
 	  if (!g_at_result_iter_next_number(&iter, &enabled))
 	    return;
@@ -176,7 +177,8 @@ static void modem_initialize(struct ofono_modem *modem)
 
 	device = ofono_modem_get_string(modem, "Device");
 
-	for (int i = 0; i < NUM_DLC; i++) {
+	int i;
+	for (i = 0; i < NUM_DLC; i++) {
 
 	options = g_hash_table_new(g_str_hash, g_str_equal);
 	if (options == NULL)
