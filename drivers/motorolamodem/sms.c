@@ -152,6 +152,8 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 		   Does not work for Tony. */
 		snprintf(buf, sizeof(buf), "AT+CNMA=0");
 	  } else {
+	  	/* SMSes seem to be acknowledged, but then they
+		   somehow reappear later? */
 		snprintf(buf, sizeof(buf), "AT+GCNMA=1");
 	  }
 
@@ -225,16 +227,6 @@ err:
 	ofono_error("Unable to parse CMT notification");
 }
 
-#endif
-
-static void motorola_sms_not_supported(struct ofono_sms *sms)
-{
-	ofono_error("SMS not supported by this modem.  If this is an error"
-			" please submit patches to support this hardware");
-
-	ofono_sms_remove(sms);
-}
-
 static void construct_ack_pdu(struct sms_data *d)
 {
 	struct sms ackpdu;
@@ -267,43 +259,7 @@ static void construct_ack_pdu(struct sms_data *d)
 err:
 	ofono_error("Unable to construct Deliver ACK PDU");
 }
-
-static void motorola_csms_query_cb(gboolean ok, GAtResult *result,
-				gpointer user_data)
-{
-	struct ofono_sms *sms = user_data;
-	struct sms_data *data = ofono_sms_get_data(sms);
-	gboolean cnma_supported = FALSE;
-	GAtResultIter iter;
-	int status_min, status_max;
-	char buf[128];
-
-	DBG("");
-
-	if (ok) {
-	  DBG("we expect failure");
-		return motorola_sms_not_supported(sms);
-	}
-
-	DBG("Ok, should have error?");
-
-	g_at_result_iter_init(&iter, result);
-
-	if (!g_at_result_iter_next(&iter, "+CSMS:"))
-		goto out;
-
-	if (!g_at_result_iter_open_list(&iter))
-		goto out;
-
-	while (g_at_result_iter_next_range(&iter, &status_min, &status_max))
-		if (status_min <= 1 && 1 <= status_max)
-			cnma_supported = TRUE;
-
-	DBG("CSMS query parsed successfully");
-
-out:
-	DBG("");
-}
+#endif
 
 /*  */
 
@@ -337,16 +293,12 @@ static void got_hex_pdu(struct ofono_sms *sms, const char *hexpdu)
 #endif
 }
 
-static int registered;
-
 static void insms_notify(GAtResult *result, gpointer user_data)
 {
 	struct ofono_sms *sms = user_data;
 
 	GAtResultIter iter;
-	const char *stat;
-	int enabled;
-	char *line;
+	const char *line;
 
 	g_at_result_iter_init(&iter, result);
 	/* g_at_result_iter_next_hexstring ? */
@@ -360,18 +312,6 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 
 	if (1)
 		motorola_ack_delivery(sms);
-
-#if 0
-	if (!g_at_result_iter_next(&iter, "~+RSSI="))
-		return;
-
-	for (int i = 0; i < 7; i++) {
-	/* 7 numbers */
-	  if (!g_at_result_iter_next_number(&iter, &enabled))
-	    return;
-	  //DBG("signal changes %d %d\n", i, enabled);
-	}
-#endif
 }
 
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
