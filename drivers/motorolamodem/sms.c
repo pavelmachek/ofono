@@ -99,23 +99,30 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	  DBG("mms likely not supported");
 	}
 	/*                                AT+GCMGS */
-	len = snprintf(buf, sizeof(buf), "AT+CMGS=%d\n\r", tpdu_len);
-	DBG("pdu len %d", pdu_len);
-	encode_hex_own_buf(pdu, pdu_len, 0, buf+len);
-	{
-	  int pos = len+pdu_len*2;
-	  buf[pos] = '\x1a'; 	  /* FIXME: core automatically does ^z embedding */
-	  buf[pos+1] = '\n';
-	  buf[pos+2] = '\r';
-	  buf[pos+3] = 0;
-	}
-	DBG("Complete command is %s", buf);
-	printf("Complete command is %s\n(all)", buf);	
+	len = snprintf(buf, sizeof(buf), "AT+GCMGS=%d\r", tpdu_len);
 
+	g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
+	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+	
+	DBG("pdu len %d", pdu_len);
+	encode_hex_own_buf(pdu, pdu_len, 0, buf);
+#if 1
+	{
+	  int pos = pdu_len*2;
+	  buf[pos++] = '\x1a'; 	  /* FIXME: core automatically does ^z embedding */
+	  buf[pos++] = 0;	  
+	}
+#endif
+	DBG("Complete command is %s", buf);
+	printf("Complete command is %s\n(all)\n", buf);
+
+	g_at_io_write(data->send_chat->parent->io, buf+2, strlen(buf+2));
+	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+#if 0
 	if (g_at_chat_send(data->send_chat, buf, cmgs_prefix,
 				motorola_cmgs_cb, cbd, g_free) > 0)
 		return;
-
+#endif
 	g_free(cbd);
 
 	CALLBACK_WITH_FAILURE(cb, -1, user_data);
