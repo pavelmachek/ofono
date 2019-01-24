@@ -99,10 +99,19 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	  DBG("mms likely not supported");
 	}
 
-	len = snprintf(buf, sizeof(buf), "AT+CMGS=%d\r", tpdu_len);
+	len = snprintf(buf, sizeof(buf), "AT+CMGS=%d\n", tpdu_len);
+	DBG("pdu len %d", pdu_len);
 	encode_hex_own_buf(pdu, pdu_len, 0, buf+len);
+	{
+	  int pos = len+pdu_len*2;
+	  buf[pos] = '\x1a';
+	  buf[pos+1] = '\n';
+	  buf[pos+2] = 0;
+	}
+	DBG("Complete command is %s", buf);
+	printf("Complete command is %s\n(all)", buf);	
 
-	if (g_at_chat_send(data->chat, buf, cmgs_prefix,
+	if (g_at_chat_send(data->send_chat, buf, cmgs_prefix,
 				motorola_cmgs_cb, cbd, g_free) > 0)
 		return;
 
