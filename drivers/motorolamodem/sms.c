@@ -48,7 +48,7 @@ static const char *none_prefix[] = { NULL };
 struct sms_data {
 	char *cnma_ack_pdu;
 	int cnma_ack_pdu_len;
-	GAtChat *chat;
+	GAtChat *chat, *send_chat;
 	unsigned int vendor;
 };
 
@@ -318,13 +318,15 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 				void *user)
 {
-	GAtChat *chat = user;
+  	struct motorola_sms_params *param = user;
+	GAtChat *chat = param->receive_chat;
 	struct sms_data *data;
 
 	DBG("");
 
 	data = g_new0(struct sms_data, 1);
 	data->chat = g_at_chat_clone(chat);
+	data->send_chat = g_at_chat_clone(param->send_chat);
 	data->vendor = vendor;
 
 	ofono_sms_set_data(sms, data);
