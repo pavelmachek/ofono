@@ -79,7 +79,6 @@ struct motmdm_data {
 	struct ofono_sim *sim;
 };
 
-#define NUM_DLC 2 /* HACK */
 const int use_usb = 0;
 
 static const char *cpin_prefix[] = { "+CPIN:", NULL };
