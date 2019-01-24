@@ -73,10 +73,8 @@ static char *devices[NUM_DLC] = { "/dev/motmdm1", "/dev/motmdm9", "/dev/motmdm3"
 
 struct motmdm_data {
 	GAtChat *dlcs[NUM_DLC];
-	gboolean phonebook_added;
-	gboolean sms_added;
-	gboolean have_sim;
 	struct ofono_sim *sim;
+	int initialized;
 };
 
 const int use_usb = 0;
@@ -240,10 +238,14 @@ error:
 
 static void foo_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
-	//struct ofono_modem *modem = user_data;
-	//struct motmdm_data *data = ofono_modem_get_data(modem);
+	struct ofono_modem *modem = user_data;
+	struct motmdm_data *data = ofono_modem_get_data(modem);
 
 	DBG("");
+	if (++data->initialized == NUM_DLC) {
+		DBG("All channels working");
+		ofono_modem_set_powered(modem, TRUE);
+	}
 }
 
 static int modem_verify(struct ofono_modem *modem)
@@ -289,8 +291,6 @@ static int motmdm_enable(struct ofono_modem *modem)
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
 
-	ofono_modem_set_powered(modem, TRUE);
-
 	//g_at_chat_send(chat, "AT", NULL, NULL, NULL, NULL);
 	//DBG("AT sent?\n");
 	return 0;
@@ -312,8 +312,7 @@ static int motmdm_disable(struct ofono_modem *modem)
 		data->dlcs[i] = NULL;
 	}
 
-	data->phonebook_added = FALSE;
-	data->sms_added = FALSE;
+	data->initialized = 0;
 
 	return -EINVAL;
 }
