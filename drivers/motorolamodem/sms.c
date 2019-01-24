@@ -42,7 +42,7 @@
 
 #include "motorolamodem.h"
 
-static const char *csms_prefix[] = { "+CSMS:", NULL };
+static const char *cmgs_prefix[] = { "+CMGS:", NULL };
 static const char *none_prefix[] = { NULL };
 
 struct sms_data {
@@ -52,7 +52,6 @@ struct sms_data {
 	unsigned int vendor;
 };
 
-#if 0
 static void motorola_cmgs_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
 	struct cb_data *cbd = user_data;
@@ -94,17 +93,10 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	char buf[512];
 	int len;
 
+	DBG("");
+
 	if (mms) {
-		switch (data->vendor) {
-		case OFONO_VENDOR_GEMALTO:
-			/* no mms support */
-			break;
-		default:
-			snprintf(buf, sizeof(buf), "AT+CMMS=%d", mms);
-			g_at_chat_send(data->chat, buf, none_prefix,
-					NULL, NULL, NULL);
-			break;
-		}
+	  DBG("mms likely not supported");
 	}
 
 	len = snprintf(buf, sizeof(buf), "AT+CMGS=%d\r", tpdu_len);
@@ -118,7 +110,6 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 
 	CALLBACK_WITH_FAILURE(cb, -1, user_data);
 }
-#endif
 
 static void at_cnma_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
@@ -388,16 +379,22 @@ static void motorola_sms_remove(struct ofono_sms *sms)
 	ofono_sms_set_data(sms, NULL);
 }
 
+void motorola_unimpl(void)
+{
+  DBG("");
+}
+
+
 static const struct ofono_sms_driver driver = {
 	.name		= "motorolamodem",
 	.probe		= motorola_sms_probe,
 	.remove		= motorola_sms_remove,
-#if 0
-	.sca_query	= motorola_csca_query,
-	.sca_set	= motorola_csca_set,
 	.submit		= motorola_cmgs,
-	.bearer_query	= motorola_cgsms_query,
-	.bearer_set	= motorola_cgsms_set,
+#if 1
+	.sca_query	= motorola_unimpl,
+	.sca_set	= motorola_unimpl,
+	.bearer_query	= motorola_unimpl,
+	.bearer_set	= motorola_unimpl,
 #endif
 };
 
