@@ -238,6 +238,24 @@ error:
 	ofono_modem_set_powered(modem, FALSE);
 }
 
+static void foo_cb(gboolean ok, GAtResult *result, gpointer user_data)
+{
+	//struct ofono_modem *modem = user_data;
+	//struct motmdm_data *data = ofono_modem_get_data(modem);
+
+	DBG("");
+}
+
+static int modem_verify(struct ofono_modem *modem)
+{
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+	int i;
+
+	for (i=0; i<NUM_DLC; i++) {
+		g_at_chat_send(data->dlcs[i], "AT+FOO\n", none_prefix, foo_cb, modem, NULL);
+	}
+}
+
 /* power up hardware */
 static int motmdm_enable(struct ofono_modem *modem)
 {
@@ -246,6 +264,7 @@ static int motmdm_enable(struct ofono_modem *modem)
 	modem_initialize(modem);
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! start\n");
+	modem_verify(modem);
 
 	/* AT+SCRN=0 to disable notifications. */
 	/* Test parsing of incoming stuff */
