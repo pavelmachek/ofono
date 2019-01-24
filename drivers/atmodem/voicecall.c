@@ -799,15 +799,11 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 
 	call = l->data;
 
-	printf("call %lx\n", call);
-	
 	strncpy(call->phone_number.number, num,
 		OFONO_MAX_PHONE_NUMBER_LENGTH);
 	call->phone_number.number[OFONO_MAX_PHONE_NUMBER_LENGTH] = '\0';
 	call->phone_number.type = type;
 	call->clip_validity = validity;
-
-	printf("call %lx, set up number, notify...\n", call);
 	
 	if (call->type == 0)
 		ofono_voicecall_notify(vc, call);
