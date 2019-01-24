@@ -99,12 +99,12 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	  DBG("mms likely not supported");
 	}
 	/*                                AT+GCMGS */
-	len = snprintf(buf, sizeof(buf), "AT+GCMGS=%d\n\r", tpdu_len);
+	len = snprintf(buf, sizeof(buf), "AT+CMGS=%d\n\r", tpdu_len);
 	DBG("pdu len %d", pdu_len);
 	encode_hex_own_buf(pdu, pdu_len, 0, buf+len);
 	{
 	  int pos = len+pdu_len*2;
-	  buf[pos] = '\x1a';
+	  buf[pos] = '\x1a'; 	  /* FIXME: core automatically does ^z embedding */
 	  buf[pos+1] = '\n';
 	  buf[pos+2] = '\r';
 	  buf[pos+3] = 0;
@@ -134,29 +134,14 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	char buf[256];
 
 	DBG("");
-#if 0
-	/* We must acknowledge the PDU using CNMA */
-	if (data->cnma_ack_pdu) {
-		switch (data->vendor) {
-		case OFONO_VENDOR_GEMALTO:
-			snprintf(buf, sizeof(buf), "AT+CNMA=1");
-			break;
-		default:
-			snprintf(buf, sizeof(buf), "AT+CNMA=1,%d\r%s",
-					data->cnma_ack_pdu_len,
-					data->cnma_ack_pdu);
-			break;
-		}
-	} else
-#endif
 	  if (0) {
 		/* Should be a safe fallback, documented, and works for me.
 		   Does not work for Tony. */
-		snprintf(buf, sizeof(buf), "AT+CNMA=0");
+		snprintf(buf, sizeof(buf), "AT+CNMA=0\n");
 	  } else {
 	  	/* SMSes seem to be acknowledged, but then they
 		   somehow reappear later? */
-		snprintf(buf, sizeof(buf), "AT+GCNMA=1");
+		snprintf(buf, sizeof(buf), "AT+GCNMA=1\n");
 	  }
 
 	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);

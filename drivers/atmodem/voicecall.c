@@ -421,7 +421,7 @@ static void at_dial(struct ofono_voicecall *vc,
 		break;
 	}
 
-	strcat(buf, ";");
+	strcat(buf, ";\n");
 
 	if (g_at_chat_send(vd->chat, buf, atd_prefix,
 				atd_cb, cbd, g_free) > 0)
@@ -460,7 +460,7 @@ error:
 static void at_answer(struct ofono_voicecall *vc,
 			ofono_voicecall_cb_t cb, void *data)
 {
-	at_template("ATA", vc, generic_cb, 0, cb, data);
+	at_template("ATA\n", vc, generic_cb, 0, cb, data);
 }
 
 static void at_hangup(struct ofono_voicecall *vc,
@@ -470,7 +470,7 @@ static void at_hangup(struct ofono_voicecall *vc,
   if (0 /* FIXME -- vd->vendor != OFONO_VENDOR_MOTMDM */)
 	at_template("AT+CHUP", vc, generic_cb, 0x3f, cb, data);
   else
-    	at_template("ATH", vc, generic_cb, 0x3f, cb, data);
+    	at_template("ATH\n", vc, generic_cb, 0x3f, cb, data);
 }
 
 static void clcc_cb(gboolean ok, GAtResult *result, gpointer user_data)
@@ -491,14 +491,14 @@ static void clcc_cb(gboolean ok, GAtResult *result, gpointer user_data)
 static void at_hold_all_active(struct ofono_voicecall *vc,
 				ofono_voicecall_cb_t cb, void *data)
 {
-	at_template("AT+CHLD=2", vc, generic_cb, 0, cb, data);
+	at_template("AT+CHLD=2\n", vc, generic_cb, 0, cb, data);
 }
 
 static void at_release_all_held(struct ofono_voicecall *vc,
 				ofono_voicecall_cb_t cb, void *data)
 {
 	unsigned int held_status = 1 << CALL_STATUS_HELD;
-	at_template("AT+CHLD=0", vc, generic_cb, held_status, cb, data);
+	at_template("AT+CHLD=0\n", vc, generic_cb, held_status, cb, data);
 }
 
 static void at_set_udub(struct ofono_voicecall *vc,
@@ -507,14 +507,14 @@ static void at_set_udub(struct ofono_voicecall *vc,
 	unsigned int incoming_or_waiting =
 		(1 << CALL_STATUS_INCOMING) | (1 << CALL_STATUS_WAITING);
 
-	at_template("AT+CHLD=0", vc, generic_cb, incoming_or_waiting,
+	at_template("AT+CHLD=0\n", vc, generic_cb, incoming_or_waiting,
 			cb, data);
 }
 
 static void at_release_all_active(struct ofono_voicecall *vc,
 					ofono_voicecall_cb_t cb, void *data)
 {
-	at_template("AT+CHLD=1", vc, generic_cb, 0x1, cb, data);
+	at_template("AT+CHLD=1\n", vc, generic_cb, 0x1, cb, data);
 }
 
 static void at_release_specific(struct ofono_voicecall *vc, int id,
@@ -532,7 +532,7 @@ static void at_release_specific(struct ofono_voicecall *vc, int id,
 	req->data = data;
 	req->id = id;
 
-	snprintf(buf, sizeof(buf), "AT+CHLD=1%d", id);
+	snprintf(buf, sizeof(buf), "AT+CHLD=1%d\n", id);
 
 	if (g_at_chat_send(vd->chat, buf, none_prefix,
 				release_id_cb, req, g_free) > 0)
@@ -549,14 +549,14 @@ static void at_private_chat(struct ofono_voicecall *vc, int id,
 {
 	char buf[32];
 
-	snprintf(buf, sizeof(buf), "AT+CHLD=2%d", id);
+	snprintf(buf, sizeof(buf), "AT+CHLD=2%d\n", id);
 	at_template(buf, vc, generic_cb, 0, cb, data);
 }
 
 static void at_create_multiparty(struct ofono_voicecall *vc,
 					ofono_voicecall_cb_t cb, void *data)
 {
-	at_template("AT+CHLD=3", vc, generic_cb, 0, cb, data);
+	at_template("AT+CHLD=3\n", vc, generic_cb, 0, cb, data);
 }
 
 static void at_transfer(struct ofono_voicecall *vc,
@@ -1187,12 +1187,12 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 	ofono_voicecall_set_data(vc, vd);
 
 	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
-		g_at_chat_send(vd->chat, "AT+CRC=1", NULL, NULL, NULL, NULL);
+		g_at_chat_send(vd->chat, "AT+CRC=1\n", NULL, NULL, NULL, NULL);
 	}
-	g_at_chat_send(vd->chat, "AT+CLIP=1", NULL, NULL, NULL, NULL);
+	g_at_chat_send(vd->chat, "AT+CLIP=1\n", NULL, NULL, NULL, NULL);
 	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
-		g_at_chat_send(vd->chat, "AT+CDIP=1", NULL, NULL, NULL, NULL);
-		g_at_chat_send(vd->chat, "AT+CNAP=1", NULL, NULL, NULL, NULL);
+		g_at_chat_send(vd->chat, "AT+CDIP=1\n", NULL, NULL, NULL, NULL);
+		g_at_chat_send(vd->chat, "AT+CNAP=1\n", NULL, NULL, NULL, NULL);
 	}
 
 	switch (vd->vendor) {
@@ -1212,7 +1212,7 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 	g_at_chat_send(vd->chat, "AT+VTD?", NULL,
 				vtd_query_cb, vc, NULL);
 	}
-	g_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
+	g_at_chat_send(vd->chat, "AT+CCWA=1\n", NULL,
 				at_voicecall_initialized, vc, NULL);
 
 	
