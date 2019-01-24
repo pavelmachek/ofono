@@ -19,6 +19,8 @@
  *
  */
 
+#define DEBUG
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -437,14 +439,18 @@ static DBusMessage *sms_get_properties(DBusConnection *conn,
 {
 	struct ofono_sms *sms = data;
 
+	DBG("");	
+
 	if (sms->flags & MESSAGE_MANAGER_FLAG_CACHED)
 		return generate_get_properties_reply(sms, msg);
 
 	if (sms->pending)
 		return __ofono_error_busy(msg);
 
-	if (sms->driver->sca_query == NULL)
+	if (sms->driver->sca_query == NULL) {
+	  DBG("Do not have sca_query");
 		return __ofono_error_not_implemented(msg);
+	}
 
 	sms->pending = dbus_message_ref(msg);
 
@@ -545,6 +551,8 @@ static DBusMessage *sms_set_property(DBusConnection *conn, DBusMessage *msg,
 		return __ofono_error_invalid_args(msg);
 
 	dbus_message_iter_recurse(&iter, &var);
+
+	DBG("sms_set_property %s", property);
 
 	if (!strcmp(property, "ServiceCenterAddress")) {
 		const char *value;
@@ -807,6 +815,7 @@ static gboolean tx_next(gpointer user_data)
 
 	sms->flags |= MESSAGE_MANAGER_FLAG_TXQ_ACTIVE;
 
+	DBG();
 	sms->driver->submit(sms, pdu->pdu, pdu->pdu_len, pdu->tpdu_len,
 				send_mms, tx_finished, sms);
 
@@ -831,6 +840,7 @@ static void netreg_status_watch(int status, int lac, int ci, int tech,
 		break;
 	}
 
+	DBG("Netreg: not registered");
 	if (sms->registered == FALSE)
 		return;
 
@@ -1013,6 +1023,7 @@ static DBusMessage *sms_send_message(DBusConnection *conn, DBusMessage *msg,
 	if (valid_phone_number_format(to) == FALSE)
 		return __ofono_error_invalid_format(msg);
 
+	DBG("alphabet");
 	msg_list = sms_text_prepare_with_alphabet(to, text, sms->ref,
 						use_16bit_ref,
 						sms->use_delivery_reports,
@@ -1027,6 +1038,7 @@ static DBusMessage *sms_send_message(DBusConnection *conn, DBusMessage *msg,
 	if (sms->use_delivery_reports)
 		flags |= OFONO_SMS_SUBMIT_FLAG_REQUEST_SR;
 
+	DBG("txq_submit");	
 	err = __ofono_sms_txq_submit(sms, msg_list, flags, &uuid,
 					message_queued, msg);
 
@@ -1036,6 +1048,7 @@ static DBusMessage *sms_send_message(DBusConnection *conn, DBusMessage *msg,
 		return __ofono_error_failed(msg);
 
 	modem = __ofono_atom_get_modem(sms->atom);
+	DBG("send pending");		
 	__ofono_history_sms_send_pending(modem, &uuid, to, time(NULL), text);
 
 	return NULL;
@@ -2102,6 +2115,8 @@ int __ofono_sms_txq_submit(struct ofono_sms *sms, GSList *list,
 	struct message *m = NULL;
 	struct tx_queue_entry *entry;
 
+	DBG();
+
 	entry = tx_queue_entry_new(list, flags);
 	if (entry == NULL)
 		return -ENOMEM;
@@ -2126,16 +2141,21 @@ int __ofono_sms_txq_submit(struct ofono_sms *sms, GSList *list,
 			sms->ref = sms->ref + 1;
 	}
 
+	DBG();	
+
 	entry->id = sms->tx_counter++;
 
 	g_queue_push_tail(sms->txq, entry);
 
+	/* A bit of a hack */
+	sms->registered = TRUE;
 	if (sms->registered && g_queue_get_length(sms->txq) == 1)
 		sms->tx_source = g_timeout_add(0, tx_next, sms);
 
 	if (uuid)
 		memcpy(uuid, &entry->uuid, sizeof(*uuid));
 
+	DBG("Added timeout");	
 	if (flags & OFONO_SMS_SUBMIT_FLAG_EXPOSE_DBUS) {
 		const char *uuid_str;
 		unsigned char i;
@@ -2153,12 +2173,14 @@ int __ofono_sms_txq_submit(struct ofono_sms *sms, GSList *list,
 		}
 	}
 
+	DBG("Calling callback");		
 	if (cb)
 		cb(sms, &entry->uuid, data);
 
 	if (m && (flags & OFONO_SMS_SUBMIT_FLAG_EXPOSE_DBUS))
 		message_emit_added(m, OFONO_MESSAGE_MANAGER_INTERFACE);
 
+	DBG("Calling callback");
 	return 0;
 
 err:
