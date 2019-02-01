@@ -50,37 +50,50 @@ struct sms_data {
 	int cnma_ack_pdu_len;
 	GAtChat *chat, *send_chat;
 	unsigned int vendor;
+
+  struct cb_data *cbd; /* callback data for */
 };
 
-static void motorola_cmgs_cb(gboolean ok, GAtResult *result, gpointer user_data)
+static void motorola_cmgs_cb(GAtResult *result, gpointer user_data)
 {
-	struct cb_data *cbd = user_data;
+  	struct ofono_sms *sms = user_data;
+	struct sms_data *data = ofono_sms_get_data(sms);
+	struct cb_data *cbd = data->cbd;
 	GAtResultIter iter;
 	ofono_sms_submit_cb_t cb = cbd->cb;
 	struct ofono_error error;
 	int mr;
 
-	decode_at_error(&error, g_at_result_final_response(result));
+	DBG("");
+	data->cbd = NULL;
 
-	if (!ok) {
+	//decode_at_error(&error, g_at_result_final_response(result));
+
+	if (0) {
+	  DBG("cmgs -- returned error");
+#if 0
 		cb(&error, -1, cbd->data);
 		return;
+#endif
 	}
-
+	DBG("iter init");
 	g_at_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "+CMGS:"))
+	if (!g_at_result_iter_next(&iter, "+GCMGS="))
 		goto err;
 
+	DBG("next");
 	if (!g_at_result_iter_next_number(&iter, &mr))
 		goto err;
 
+	DBG("get number");
 	DBG("Got MR: %d", mr);
 
 	cb(&error, mr, cbd->data);
 	return;
 
 err:
+	DBG("callback with failure");
 	CALLBACK_WITH_FAILURE(cb, -1, cbd->data);
 }
 
@@ -118,6 +131,9 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	g_at_io_write(data->send_chat->parent->io, cmd, strlen(cmd));
 	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
 #endif
+	data->cbd = cbd;
+	return;
+	  
 /*
 	if (g_at_chat_send(data->send_chat, buf, cmgs_prefix,
 				motorola_cmgs_cb, cbd, g_free) > 0)
@@ -325,6 +341,7 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	ofono_sms_set_data(sms, data);
 
 	g_at_chat_register(data->chat, "", insms_notify, FALSE, sms, NULL);
+	g_at_chat_register(data->send_chat, "+GCMGS", motorola_cmgs_cb, FALSE, sms, NULL);
 
 #if 0
 	/* Tony says this acks sms, I don't see the effect */
