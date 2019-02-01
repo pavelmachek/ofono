@@ -49,7 +49,7 @@
 #define SETTINGS_STORE "sms"
 #define SETTINGS_GROUP "Settings"
 
-#define TXQ_MAX_RETRIES 4
+#define TXQ_MAX_RETRIES 0
 #define NETWORK_TIMEOUT 332
 
 static gboolean tx_next(gpointer user_data);
