@@ -412,16 +412,16 @@ static void at_dial(struct ofono_voicecall *vc,
 
 	switch (clir) {
 	case OFONO_CLIR_OPTION_INVOCATION:
-		strcat(buf, "I");
+		strcat(buf, ",0");
 		break;
 	case OFONO_CLIR_OPTION_SUPPRESSION:
-		strcat(buf, "i");
+		strcat(buf, ",1");
 		break;
 	default:
 		break;
 	}
 
-	strcat(buf, ";\n");
+	strcat(buf, "\n");
 
 	if (g_at_chat_send(vd->chat, buf, atd_prefix,
 				atd_cb, cbd, g_free) > 0)
