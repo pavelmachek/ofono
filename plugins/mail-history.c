@@ -34,18 +34,18 @@
 
 #include "common.h"
 
-static int example_history_probe(struct ofono_history_context *context)
+static int mail_history_probe(struct ofono_history_context *context)
 {
 	ofono_debug("Example History Probe for modem: %p", context->modem);
 	return 0;
 }
 
-static void example_history_remove(struct ofono_history_context *context)
+static void mail_history_remove(struct ofono_history_context *context)
 {
 	ofono_debug("Example History Remove for modem: %p", context->modem);
 }
 
-static void example_history_call_ended(struct ofono_history_context *context,
+static void mail_history_call_ended(struct ofono_history_context *context,
 					const struct ofono_call *call,
 					time_t start, time_t end)
 {
@@ -80,7 +80,7 @@ static void example_history_call_ended(struct ofono_history_context *context,
 	ofono_debug("EndTime: %s", buf);
 }
 
-static void example_history_call_missed(struct ofono_history_context *context,
+static void mail_history_call_missed(struct ofono_history_context *context,
 					const struct ofono_call *call,
 					time_t when)
 {
@@ -108,7 +108,7 @@ static void example_history_call_missed(struct ofono_history_context *context,
 	ofono_debug("When: %s", buf);
 }
 
-static void example_history_sms_received(struct ofono_history_context *context,
+static void mail_history_sms_received(struct ofono_history_context *context,
 						const struct ofono_uuid *uuid,
 						const char *from,
 						const struct tm *remote,
@@ -132,7 +132,7 @@ static void example_history_sms_received(struct ofono_history_context *context,
 	ofono_debug("Text: %s", text);
 }
 
-static void example_history_sms_send_pending(struct ofono_history_context *context,
+static void mail_history_sms_send_pending(struct ofono_history_context *context,
 						const struct ofono_uuid *uuid,
 						const char *to, time_t when,
 						const char *text)
@@ -149,7 +149,7 @@ static void example_history_sms_send_pending(struct ofono_history_context *conte
 	ofono_debug("Text: %s", text);
 }
 
-static void example_history_sms_send_status(
+static void mail_history_sms_send_status(
 					struct ofono_history_context *context,
 					const struct ofono_uuid *uuid,
 					time_t when,
@@ -190,27 +190,27 @@ static void example_history_sms_send_status(
 	}
 }
 
-static struct ofono_history_driver example_driver = {
+static struct ofono_history_driver mail_driver = {
 	.name = "Example Call History",
-	.probe = example_history_probe,
-	.remove = example_history_remove,
-	.call_ended = example_history_call_ended,
-	.call_missed = example_history_call_missed,
-	.sms_received = example_history_sms_received,
-	.sms_send_pending = example_history_sms_send_pending,
-	.sms_send_status = example_history_sms_send_status,
+	.probe = mail_history_probe,
+	.remove = mail_history_remove,
+	.call_ended = mail_history_call_ended,
+	.call_missed = mail_history_call_missed,
+	.sms_received = mail_history_sms_received,
+	.sms_send_pending = mail_history_sms_send_pending,
+	.sms_send_status = mail_history_sms_send_status,
 };
 
-static int example_history_init(void)
+static int mail_history_init(void)
 {
-	return ofono_history_driver_register(&example_driver);
+	return ofono_history_driver_register(&mail_driver);
 }
 
-static void example_history_exit(void)
+static void mail_history_exit(void)
 {
-	ofono_history_driver_unregister(&example_driver);
+	ofono_history_driver_unregister(&mail_driver);
 }
 
 OFONO_PLUGIN_DEFINE(mail_history, "Example Call History Plugin",
 			VERSION, OFONO_PLUGIN_PRIORITY_DEFAULT,
-			example_history_init, example_history_exit)
+			mail_history_init, mail_history_exit)
