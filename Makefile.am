@@ -658,6 +658,9 @@ builtin_sources += plugins/file-provision.c
 
 endif
 
+builtin_modules += mail_history
+builtin_sources += plugins/mail-history.c
+
 if MAINTAINER_MODE
 builtin_modules += example_history
 builtin_sources += examples/history.c
