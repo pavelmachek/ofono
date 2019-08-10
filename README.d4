@@ -21,7 +21,7 @@ ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="22b8", ATTRS{idProduct}=="2a7
 
 sudo /etc/init.d/ofono stop
 
-sudo src/ofonod -n -d -p motmdm,udevng
+make && sudo OFONO_AT_DEBUG=1 src/ofonod -n -d -p motmdm,udevng,motorolamodem,atmodem
 
 sudo python2 ./online-modem
 
