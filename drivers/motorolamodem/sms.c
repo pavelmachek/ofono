@@ -328,13 +328,13 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 				void *user)
 {
   	struct motorola_sms_params *param = user;
-	GAtChat *chat = param->receive_chat;
 	struct sms_data *data;
 
-	DBG("");
+	printf("while is DBG() not printed?!\n"); fflush(stdout);
+	DBG("**************************** this should be called");
 
 	data = g_new0(struct sms_data, 1);
-	data->chat = g_at_chat_clone(chat);
+	data->chat = g_at_chat_clone(param->receive_chat);
 	data->send_chat = g_at_chat_clone(param->send_chat);
 	data->vendor = vendor;
 
@@ -393,6 +393,7 @@ static void motorola_sms_remove(struct ofono_sms *sms)
 	l_free(data->cnma_ack_pdu);
 
 	g_at_chat_unref(data->chat);
+	g_at_chat_unref(data->send_chat);
 	g_free(data);
 
 	ofono_sms_set_data(sms, NULL);

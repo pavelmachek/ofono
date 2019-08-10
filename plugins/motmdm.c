@@ -3,6 +3,7 @@
  *  oFono - Open Source Telephony
  *
  *  Copyright (C) 2008-2011  Intel Corporation. All rights reserved.
+ *  Copyright (C) 2019 Pavel Machek <pavel@ucw.cz> 
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -19,6 +20,7 @@
  *
  */
 
+#define DEBUG
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -317,6 +319,22 @@ static int motmdm_disable(struct ofono_modem *modem)
 	return -EINVAL;
 }
 
+struct ofono_sms *sms_hack;
+
+static void motmdm_set_online(struct ofono_modem *modem, ofono_bool_t online,
+				ofono_modem_online_cb_t cb, void *user_data)
+{
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+	struct cb_data *cbd = cb_data_new(cb, user_data);
+
+	DBG("modem %p %s", modem, online ? "online" : "offline");
+
+	//ofono_sms_register(sms_hack);
+	CALLBACK_WITH_SUCCESS(cb, cbd->data);
+
+	g_free(cbd);
+}
+
 static void motmdm_pre_sim(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
@@ -325,13 +343,19 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 	data->sim = ofono_sim_create(modem, OFONO_VENDOR_MOTMDM, "nonexistingfoomodem", data->dlcs[VOICE_DLC]);
 	ofono_voicecall_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
+#if 1
 	{
 		struct motorola_sms_params motorola_sms_params = {
 			.receive_chat = data->dlcs[INSMS_DLC],
 			.send_chat = data->dlcs[OUTSMS_DLC],
 		};
-		ofono_sms_register(ofono_sms_create(modem, OFONO_VENDOR_MOTMDM, "motorolamodem", &motorola_sms_params));
+		DBG("sms create");
+		sms_hack = ofono_sms_create(modem, OFONO_VENDOR_MOTMDM, "motorolamodem", &motorola_sms_params);
+		DBG("sms create done.");		
+		ofono_sms_register(sms_hack);
+		DBG("sms registered.");
 	}
+#endif
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
 
@@ -366,6 +390,7 @@ static struct ofono_modem_driver motmdm_driver = {
 	.remove		= motmdm_remove,
 	.enable		= motmdm_enable,
 	.disable	= motmdm_disable,
+	//	.set_online	= motmdm_set_online,
 	.pre_sim	= motmdm_pre_sim,
 	.post_sim	= motmdm_post_sim,
 };
