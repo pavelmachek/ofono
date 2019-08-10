@@ -970,7 +970,6 @@ static gboolean setup_serial_modem(struct modem_info* modem)
 {
 	struct serial_device_info* info;
 
-	DBG("setup_serial_modem --\n");
 	info = modem->serial;
 
 	ofono_modem_set_string(modem->modem, "Device", info->devnode);
@@ -1785,8 +1784,6 @@ static void check_usb_device(struct udev_device *device)
 static void check_device(struct udev_device *device)
 {
 	const char *bus;
-
-	DBG("check_device %s\n", udev_device_get_devnode(device));
 
 	bus = udev_device_get_property_value(device, "ID_BUS");
 	if (bus == NULL) {

@@ -136,8 +136,6 @@ static int at_devinfo_probe(struct ofono_devinfo *info, unsigned int vendor,
 {
 	GAtChat *chat = g_at_chat_clone(data);
 
-	DBG("");
-
 	ofono_devinfo_set_data(info, chat);
 
 	g_at_chat_send(chat, "AT+GCAP", gcap_prefix,

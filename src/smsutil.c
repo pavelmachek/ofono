@@ -749,8 +749,6 @@ static gboolean decode_deliver(const unsigned char *pdu, int len,
 
 	out->type = SMS_TYPE_DELIVER;
 
-	printf("decode_deliver...\n");
-
 	if (!next_octet(pdu, len, &offset, &octet))
 		return FALSE;
 
@@ -759,17 +757,13 @@ static gboolean decode_deliver(const unsigned char *pdu, int len,
 	out->deliver.udhi = is_bit_set(octet, 6);
 	out->deliver.rp = is_bit_set(octet, 7);
 
-	printf("decode_deliver... bits\n");	
-
 	if (!sms_decode_address_field(pdu, len, &offset,
 					FALSE, &out->deliver.oaddr))
 		return FALSE;
 
-	printf("decode_deliver... address\n");	
 	if (!next_octet(pdu, len, &offset, &out->deliver.pid))
 		return FALSE;
 
-	printf("decode_deliver... dcs\n");	
 	if (!next_octet(pdu, len, &offset, &out->deliver.dcs))
 		return FALSE;
 
@@ -1547,8 +1541,6 @@ gboolean sms_decode(const unsigned char *pdu, int len, gboolean outgoing,
 	unsigned char type;
 	int offset = 0;
 
-	printf("sms_decode: start\n");
-
 	if (out == NULL)
 		return FALSE;
 
@@ -1557,8 +1549,6 @@ gboolean sms_decode(const unsigned char *pdu, int len, gboolean outgoing,
 
 	memset(out, 0, sizeof(*out));
 
-	printf("sms_decode: start\n");
-	
 	if (tpdu_len < len) {
 		if (!sms_decode_address_field(pdu, len, &offset,
 						TRUE, &out->sc_addr))
@@ -1568,8 +1558,6 @@ gboolean sms_decode(const unsigned char *pdu, int len, gboolean outgoing,
 	if ((len - offset) < tpdu_len)
 		return FALSE;
 
-	printf("sms_decode: address\n");
-
 	/* 23.040 9.2.3.1 */
 	type = pdu[offset] & 0x3;
 
@@ -1577,8 +1565,6 @@ gboolean sms_decode(const unsigned char *pdu, int len, gboolean outgoing,
 		type |= 0x4;
 
 	pdu = pdu + offset;
-
-	printf("sms_decode: type %d\n", type);
 
 	switch (type) {
 	case 0:

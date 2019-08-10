@@ -401,8 +401,6 @@ static void at_dial(struct ofono_voicecall *vc,
 	struct cb_data *cbd = cb_data_new(cb, data);
 	char buf[256];
 
-	DBG("");
-
 	cbd->user = vc;
 
 	if (ph->type == 145)
@@ -790,8 +788,6 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 	g_at_result_iter_skip_next(&iter);
 	g_at_result_iter_skip_next(&iter);
 
-	printf("parsed ok, num %s\n", num);
-
 	/* If we have CLI validity field, override our guessed value */
 	g_at_result_iter_next_number(&iter, &validity);
 
@@ -804,7 +800,7 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 	call->phone_number.number[OFONO_MAX_PHONE_NUMBER_LENGTH] = '\0';
 	call->phone_number.type = type;
 	call->clip_validity = validity;
-	
+
 	if (call->type == 0)
 		ofono_voicecall_notify(vc, call);
 
@@ -1173,8 +1169,6 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 {
 	GAtChat *chat = data;
 	struct voicecall_data *vd;
-
-	DBG();
 
 	vd = g_try_new0(struct voicecall_data, 1);
 	if (vd == NULL)

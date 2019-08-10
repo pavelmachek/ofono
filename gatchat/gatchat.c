@@ -498,8 +498,6 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 	int hint;
 	GSList *l;
 
-	printf("Handle command response: %s\n", line);
-
 	for (i = 0; i < size; i++) {
 		struct terminator_info *info = &terminator_table[i];
 		if (check_terminator(info, line) &&
@@ -508,8 +506,6 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 			return TRUE;
 		}
 	}
-
-	printf("Handle terminator list\n");
 
 	for (l = p->terminator_list; l; l = l->next) {
 		struct terminator_info *info = l->data;
@@ -801,7 +797,6 @@ static gboolean wakeup_no_response(gpointer user_data)
 	struct at_chat *chat = user_data;
 	struct at_command *cmd = g_queue_peek_head(chat->command_queue);
 
-	printf("wakeup_no_response\n");
 	if (chat->debugf)
 		chat->debugf("Wakeup got no response\n", chat->debug_data);
 
@@ -864,8 +859,6 @@ static gboolean can_write_data(gpointer data)
 	}
 
 	if (chat->cmd_bytes_written == 0 && wakeup_first == TRUE) {
-	  printf("can_write_data() ?\n");
-	  
 		cmd = at_command_create(0, chat->wakeup, none_prefix, 0,
 					NULL, wakeup_cb, chat, NULL, TRUE);
 		if (cmd == NULL)
@@ -1035,8 +1028,6 @@ static guint at_chat_send_common(struct at_chat *chat, guint gid,
 	if (chat == NULL || chat->command_queue == NULL)
 		return 0;
 
-	printf("chat_send_common\n");
-	
 	c = at_command_create(gid, cmd, prefix_list, flags, listing, func,
 				user_data, notify, FALSE);
 	if (c == NULL)

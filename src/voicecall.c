@@ -1492,8 +1492,6 @@ static int voicecall_dial(struct ofono_voicecall *vc, const char *number,
 	struct ofono_modem *modem = __ofono_atom_get_modem(vc->atom);
 	struct ofono_phone_number ph;
 
-	DBG("");
-
 	if (g_slist_length(vc->call_list) >= MAX_VOICE_CALLS)
 		return -EPERM;
 
@@ -1503,7 +1501,6 @@ static int voicecall_dial(struct ofono_voicecall *vc, const char *number,
 	if (!valid_long_phone_number_format(number))
 		return -EINVAL;
 
-	
 	if (ofono_modem_get_online(modem) == FALSE)
 		return -ENETDOWN;
 
@@ -1531,7 +1528,6 @@ static int voicecall_dial(struct ofono_voicecall *vc, const char *number,
 		storage_sync(vc->imsi, SETTINGS_STORE, vc->settings);
 	}
 
-	DBG("calling driver");
 	vc->driver->dial(vc, &ph, clir, cb, vc);
 
 	return 0;
@@ -1546,8 +1542,6 @@ static DBusMessage *manager_dial(DBusConnection *conn,
 	enum ofono_clir_option clir;
 	int err;
 
-	DBG("");
-
 	if (vc->pending || vc->dial_req || vc->pending_em)
 		return __ofono_error_busy(msg);
 
@@ -1561,7 +1555,6 @@ static DBusMessage *manager_dial(DBusConnection *conn,
 
 	vc->pending = dbus_message_ref(msg);
 
-	DBG("");
 	err = voicecall_dial(vc, number, clir, manager_dial_callback, vc);
 
 	if (err >= 0)
@@ -2967,7 +2960,6 @@ struct ofono_voicecall *ofono_voicecall_create(struct ofono_modem *modem,
 
 	vc->toneq = g_queue_new();
 
-	DBG("Add atom");
 	vc->atom = __ofono_modem_add_atom(modem, OFONO_ATOM_TYPE_VOICECALL,
 						voicecall_remove, vc);
 
@@ -2980,11 +2972,9 @@ struct ofono_voicecall *ofono_voicecall_create(struct ofono_modem *modem,
 		if (drv->probe(vc, vendor, data) < 0)
 			continue;
 
-		DBG("have driver");
 		vc->driver = drv;
 		break;
 	}
-	DBG("returning");
 
 	return vc;
 }
