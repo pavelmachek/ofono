@@ -42,7 +42,6 @@
 
 #include "motorolamodem.h"
 
-static const char *cmgs_prefix[] = { "+CMGS:", NULL };
 static const char *none_prefix[] = { NULL };
 
 struct sms_data {
@@ -105,15 +104,14 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	struct cb_data *cbd = cb_data_new(cb, user_data);
 	char buf[512];
 	char *cmd = buf;
-	int len;
 
 	DBG("");
 
 	if (mms) {
 	  DBG("mms likely not supported");
 	}
-	/*                                AT+GCMGS */
-	len = snprintf(buf, sizeof(buf), "AT+GCMGS=\r", tpdu_len);
+	/*                          AT+GCMGS */
+	snprintf(buf, sizeof(buf), "AT+GCMGS=\r");
 	DBG("CMGS intro is %s", buf);
 #if 1
 	g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
@@ -399,9 +397,9 @@ static void motorola_sms_remove(struct ofono_sms *sms)
 	ofono_sms_set_data(sms, NULL);
 }
 
-void motorola_unimpl(void)
+static void motorola_unimpl(void)
 {
-  DBG("");
+	DBG("");
 }
 
 
@@ -410,7 +408,7 @@ static const struct ofono_sms_driver driver = {
 	.probe		= motorola_sms_probe,
 	.remove		= motorola_sms_remove,
 	.submit		= motorola_cmgs,
-#if 1
+#if 0
 	.sca_query	= motorola_unimpl,
 	.sca_set	= motorola_unimpl,
 	.bearer_query	= motorola_unimpl,

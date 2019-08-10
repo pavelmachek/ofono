@@ -81,9 +81,9 @@ struct motmdm_data {
 
 const int use_usb = 0;
 
-static const char *cpin_prefix[] = { "+CPIN:", NULL };
-static const char *cfun_prefix[] = { "+CFUN:", NULL };
-static const char *scrn_prefix[] = { "+SCRN:", NULL };
+//static const char *cpin_prefix[] = { "+CPIN:", NULL };
+//static const char *cfun_prefix[] = { "+CFUN:", NULL };
+//static const char *scrn_prefix[] = { "+SCRN:", NULL };
 static const char *none_prefix[] = { NULL };
 
 static void motmdm_debug(const char *str, void *user_data)
@@ -250,7 +250,7 @@ static void foo_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	}
 }
 
-static int modem_verify(struct ofono_modem *modem)
+static void modem_verify(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i;
