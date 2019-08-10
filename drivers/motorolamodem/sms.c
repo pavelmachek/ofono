@@ -102,8 +102,8 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 {
 	struct sms_data *data = ofono_sms_get_data(sms);
 	struct cb_data *cbd = cb_data_new(cb, user_data);
-	char buf[512];
-	char *cmd = buf;
+	char buf[512], buf_pdu[512];
+	int l1;
 
 	DBG("");
 
@@ -113,20 +113,20 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	/*                          AT+GCMGS */
 	snprintf(buf, sizeof(buf), "AT+GCMGS=\r");
 	DBG("CMGS intro is %s", buf);
-#if 1
-	g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
+	l1 = strlen(buf);
+#if 0
 	//	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
 #endif
 	
 	DBG("pdu len %d", pdu_len);
-	encode_hex_own_buf(pdu, pdu_len, 0, buf);
+	encode_hex_own_buf(pdu, pdu_len, 0, buf_pdu);
+	strcat(buf, buf_pdu+2);
 	strcat(buf, "\x1a");
-	cmd = buf+2;
-	DBG("Complete command is %s", cmd);
-	printf("Complete command is %s\n(all)\n", cmd);
+	DBG("Complete command is %s", buf);
 
 #if 1
-	g_at_io_write(data->send_chat->parent->io, cmd, strlen(cmd));
+	g_at_io_write(data->send_chat->parent->io, buf, l1);
+	g_at_io_write(data->send_chat->parent->io, buf+l1, strlen(buf+l1));
 	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
 #endif
 	data->cbd = cbd;
