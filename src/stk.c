@@ -345,15 +345,15 @@ static char *dbus_apply_text_attributes(const char *text,
 }
 
 static struct stk_menu *stk_menu_create(const char *title,
-		const struct stk_text_attribute *title_attr,
-		const struct stk_icon_id *icon, GSList *items,
-		const struct stk_item_text_attribute_list *item_attrs,
-		const struct stk_item_icon_id_list *item_icon_ids,
-		int default_id, gboolean soft_key, gboolean has_help)
+			const struct stk_text_attribute *title_attr,
+			const struct stk_icon_id *icon, struct l_queue *items,
+			const struct stk_item_text_attribute_list *item_attrs,
+			const struct stk_item_icon_id_list *item_icon_ids,
+			int default_id, bool soft_key, bool has_help)
 {
-	unsigned int len = g_slist_length(items);
+	unsigned int len = l_queue_length(items);
 	struct stk_menu *ret;
-	GSList *l;
+	const struct l_queue_entry *entry;
 	int i;
 	struct stk_text_attribute attr;
 
@@ -378,8 +378,9 @@ static struct stk_menu *stk_menu_create(const char *title,
 	ret->soft_key = soft_key;
 	ret->has_help = has_help;
 
-	for (l = items, i = 0; l; l = l->next, i++) {
-		struct stk_item *item = l->data;
+	for (entry = l_queue_get_entries(items), i = 0;
+					entry; entry = entry->next, i++) {
+		struct stk_item *item = entry->data;
 		char *text;
 
 		ret->items[i].item_id = item->id;
@@ -416,8 +417,8 @@ static struct stk_menu *stk_menu_create(const char *title,
 static struct stk_menu *stk_menu_create_from_set_up_menu(
 						const struct stk_command *cmd)
 {
-	gboolean soft_key = (cmd->qualifier & (1 << 0)) != 0;
-	gboolean has_help = (cmd->qualifier & (1 << 7)) != 0;
+	bool soft_key = (cmd->qualifier & (1 << 0)) != 0;
+	bool has_help = (cmd->qualifier & (1 << 7)) != 0;
 
 	return stk_menu_create(cmd->setup_menu.alpha_id,
 				&cmd->setup_menu.text_attr,
@@ -431,8 +432,8 @@ static struct stk_menu *stk_menu_create_from_set_up_menu(
 static struct stk_menu *stk_menu_create_from_select_item(
 						const struct stk_command *cmd)
 {
-	gboolean soft_key = (cmd->qualifier & (1 << 2)) != 0;
-	gboolean has_help = (cmd->qualifier & (1 << 7)) != 0;
+	bool soft_key = (cmd->qualifier & (1 << 2)) != 0;
+	bool has_help = (cmd->qualifier & (1 << 7)) != 0;
 
 	return stk_menu_create(cmd->select_item.alpha_id,
 				&cmd->select_item.text_attr,
@@ -461,7 +462,7 @@ static void emit_menu_changed(struct ofono_stk *stk)
 	static struct stk_menu no_menu = {
 		.title = "",
 		.items = &end_item,
-		.has_help = FALSE,
+		.has_help = false,
 		.default_item = -1,
 	};
 	static char *name = "MainMenu";
@@ -1040,7 +1041,7 @@ static gboolean timers_cb(gpointer user_data)
 
 static void timer_value_from_seconds(struct stk_timer_value *val, int seconds)
 {
-	val->has_value = TRUE;
+	val->has_value = true;
 	val->hour = seconds / 3600;
 	seconds -= val->hour * 3600;
 	val->minute = seconds / 60;
@@ -1454,8 +1455,7 @@ static void set_get_inkey_duration(struct stk_duration *duration,
 }
 
 static void request_confirmation_cb(enum stk_agent_result result,
-					gboolean confirm,
-					void *user_data)
+					bool confirm, void *user_data)
 {
 	struct ofono_stk *stk = user_data;
 	static struct ofono_error error = { .type = OFONO_ERROR_TYPE_FAILURE };
@@ -1468,7 +1468,7 @@ static void request_confirmation_cb(enum stk_agent_result result,
 
 		rsp.result.type = STK_RESULT_TYPE_SUCCESS;
 		rsp.get_inkey.text.text = confirm ? "" : NULL;
-		rsp.get_inkey.text.yesno = TRUE;
+		rsp.get_inkey.text.yesno = true;
 
 		if (cmd->duration.interval) {
 			rsp.get_inkey.duration.unit = cmd->duration.unit;
@@ -1761,7 +1761,7 @@ static void call_setup_cancel(struct ofono_stk *stk)
 		__ofono_voicecall_dial_cancel(vc);
 }
 
-static void confirm_call_cb(enum stk_agent_result result, gboolean confirm,
+static void confirm_call_cb(enum stk_agent_result result, bool confirm,
 				void *user_data)
 {
 	struct ofono_stk *stk = user_data;
@@ -1779,7 +1779,7 @@ static void confirm_call_cb(enum stk_agent_result result, gboolean confirm,
 
 	switch (result) {
 	case STK_AGENT_RESULT_TIMEOUT:
-		confirm = FALSE;
+		confirm = false;
 		/* Fall through */
 
 	case STK_AGENT_RESULT_OK:
@@ -1865,7 +1865,7 @@ static void confirm_call_cb(enum stk_agent_result result, gboolean confirm,
 }
 
 static void confirm_handled_call_cb(enum stk_agent_result result,
-					gboolean confirm, void *user_data)
+					bool confirm, void *user_data)
 {
 	struct ofono_stk *stk = user_data;
 	const struct stk_command_setup_call *sc =
@@ -2020,7 +2020,7 @@ static void send_ussd_callback(int error, int dcs, const unsigned char *msg,
 			rsp.result.type = STK_RESULT_TYPE_SUCCESS;
 			rsp.send_ussd.text.text = msg;
 			rsp.send_ussd.text.len = msg_len;
-			rsp.send_ussd.text.has_text = TRUE;
+			rsp.send_ussd.text.has_text = true;
 		} else
 			rsp.result.type = STK_RESULT_TYPE_USSD_RETURN_ERROR;
 
@@ -2164,7 +2164,7 @@ static gboolean handle_command_refresh(const struct stk_command *cmd,
 	struct ofono_sim *sim;
 	uint8_t addnl_info[1];
 	int err;
-	GSList *l;
+	const struct l_queue_entry *entry;
 
 	DBG("");
 
@@ -2208,8 +2208,9 @@ static gboolean handle_command_refresh(const struct stk_command *cmd,
 	}
 
 	DBG("Files:");
-	for (l = cmd->refresh.file_list; l; l = l->next) {
-		struct stk_file *file = l->data;
+	for (entry = l_queue_get_entries(cmd->refresh.file_list);
+					entry; entry = entry->next) {
+		struct stk_file *file = entry->data;
 		char buf[17];
 
 		encode_hex_own_buf(file->file, file->len, 0, buf);
@@ -2273,7 +2274,8 @@ static gboolean handle_command_refresh(const struct stk_command *cmd,
 	 */
 	if (cmd->qualifier < 4 || rsp == NULL) {
 		int qualifier = stk->pending_cmd->qualifier;
-		GSList *file_list = stk->pending_cmd->refresh.file_list;
+		struct l_queue *file_list =
+					stk->pending_cmd->refresh.file_list;
 
 		/* Don't free the list yet */
 		stk->pending_cmd->refresh.file_list = NULL;
@@ -2316,7 +2318,7 @@ static gboolean handle_command_refresh(const struct stk_command *cmd,
 			break;
 		}
 
-		g_slist_free_full(file_list, g_free);
+		l_queue_destroy(file_list, l_free);
 
 		return FALSE;
 	}
@@ -2346,7 +2348,7 @@ static void get_time(struct stk_response *rsp)
 	rsp->provide_local_info.datetime.minute = t->tm_min;
 	rsp->provide_local_info.datetime.second = t->tm_sec;
 	rsp->provide_local_info.datetime.timezone = t->tm_gmtoff / 900;
-	rsp->provide_local_info.datetime.has_timezone = TRUE;
+	rsp->provide_local_info.datetime.has_timezone = true;
 
 	return;
 }
@@ -2683,7 +2685,7 @@ static gboolean handle_command_play_tone(const struct stk_command *cmd,
 }
 
 static void confirm_launch_browser_cb(enum stk_agent_result result,
-					gboolean confirm,
+					bool confirm,
 					void *user_data)
 {
 	struct ofono_stk *stk = user_data;
@@ -2693,7 +2695,7 @@ static void confirm_launch_browser_cb(enum stk_agent_result result,
 
 	switch (result) {
 	case STK_AGENT_RESULT_TIMEOUT:
-		confirm = FALSE;
+		confirm = false;
 		/* Fall through */
 
 	case STK_AGENT_RESULT_OK:
