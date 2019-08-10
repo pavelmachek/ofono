@@ -115,7 +115,7 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	DBG("CMGS intro is %s", buf);
 #if 1
 	g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
-	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+	//	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
 #endif
 	
 	DBG("pdu len %d", pdu_len);
