@@ -1,0 +1,1 @@
+make && sudo OFONO_AT_DEBUG=1 src/ofonod -n -d -p motmdm,udevng,motorolamodem,atmodem
