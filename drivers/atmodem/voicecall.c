@@ -410,10 +410,10 @@ static void at_dial(struct ofono_voicecall *vc,
 
 	switch (clir) {
 	case OFONO_CLIR_OPTION_INVOCATION:
-		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "i" : ",0");
+		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "I" : ",0");
 		break;
 	case OFONO_CLIR_OPTION_SUPPRESSION:
-		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "I" : ",1");
+		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "i" : ",1");
 		break;
 	default:
 		break;
@@ -465,11 +465,13 @@ static void at_answer(struct ofono_voicecall *vc,
 static void at_hangup(struct ofono_voicecall *vc,
 			ofono_voicecall_cb_t cb, void *data)
 {
+	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
+
 	/* Hangup active call */
-  if (0 /* FIXME -- vd->vendor != OFONO_VENDOR_MOTMDM */)
-	at_template("AT+CHUP", vc, generic_cb, 0x3f, cb, data);
-  else
-    	at_template("ATH", vc, generic_cb, 0x3f, cb, data);
+	if (vd->vendor != OFONO_VENDOR_MOTMDM)
+		at_template("AT+CHUP", vc, generic_cb, 0x3f, cb, data);
+	else
+		at_template("ATH", vc, generic_cb, 0x3f, cb, data);
 }
 
 static void clcc_cb(gboolean ok, GAtResult *result, gpointer user_data)
@@ -1160,7 +1162,7 @@ static void at_voicecall_initialized(gboolean ok, GAtResult *result,
 
 	/* Populate the call list */
 	if (vd->vendor != OFONO_VENDOR_MOTMDM)
-	g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix, clcc_cb, vc, NULL);
+		g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix, clcc_cb, vc, NULL);
 }
 
 static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
@@ -1208,7 +1210,6 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 	g_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
 				at_voicecall_initialized, vc, NULL);
 
-	
 	return 0;
 }
 
