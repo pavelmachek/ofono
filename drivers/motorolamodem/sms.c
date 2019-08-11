@@ -114,19 +114,19 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	snprintf(buf, sizeof(buf), "AT+GCMGS=\r");
 	DBG("CMGS intro is %s", buf);
 	l1 = strlen(buf);
-#if 0
-	//	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
-#endif
 	
 	DBG("pdu len %d", pdu_len);
 	encode_hex_own_buf(pdu, pdu_len, 0, buf_pdu);
 	strcat(buf, buf_pdu+2);
-	strcat(buf, "\x1a");
-	DBG("Complete command is %s", buf);
+	//strcat(buf_pdu, "\x1a");
+	//DBG("Complete command is %s", buf);
 
-#if 1
-	g_at_io_write(data->send_chat->parent->io, buf, l1);
-	g_at_io_write(data->send_chat->parent->io, buf+l1, strlen(buf+l1));
+#if 0
+	g_at_chat_send(data->send_chat, buf, none_prefix, NULL, data, NULL);
+	g_at_chat_send(data->send_chat, buf_pdu+2, none_prefix, NULL, data, NULL);
+#else
+	g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
+	g_at_io_write(data->send_chat->parent->io, buf_pdu, strlen(buf_pdu));
 	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
 #endif
 	data->cbd = cbd;

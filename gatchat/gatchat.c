@@ -877,8 +877,8 @@ static gboolean can_write_data(gpointer data)
 	cr = strchr(cmd->cmd + chat->cmd_bytes_written, '\r');
 
 	if (cr) {
-	  printf("FIXME: hack, not limiting to first r\n");
-	  //towrite = cr - (cmd->cmd + chat->cmd_bytes_written) + 1;
+	  //printf("FIXME: hack, not limiting to first r\n");
+	  towrite = cr - (cmd->cmd + chat->cmd_bytes_written) + 1;
 	}
 
 #ifdef WRITE_SCHEDULER_DEBUG
