@@ -158,11 +158,11 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	  if (0) {
 		/* Should be a safe fallback, documented, and works for me.
 		   Does not work for Tony. */
-		snprintf(buf, sizeof(buf), "AT+CNMA=0\n");
+		snprintf(buf, sizeof(buf), "AT+CNMA=0");
 	  } else {
 	  	/* SMSes seem to be acknowledged, but then they
 		   somehow reappear later? */
-		snprintf(buf, sizeof(buf), "AT+GCNMA=1\n");
+		snprintf(buf, sizeof(buf), "AT+GCNMA=1");
 	  }
 
 	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
