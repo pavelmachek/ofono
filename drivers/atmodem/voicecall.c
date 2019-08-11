@@ -1,4 +1,4 @@
-/*
+/* -*- linux-c -*-
  *
  *  oFono - Open Source Telephony
  *
@@ -266,7 +266,7 @@ poll_again:
 
 static void send_clcc(struct voicecall_data *vd, struct ofono_voicecall *vc)
 {
-  if (vd->vendor != OFONO_VENDOR_MOTMDM)
+	if (vd->vendor != OFONO_VENDOR_MOTMDM)
 	g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix, clcc_poll_cb, vc, NULL);
 }
 
@@ -410,16 +410,17 @@ static void at_dial(struct ofono_voicecall *vc,
 
 	switch (clir) {
 	case OFONO_CLIR_OPTION_INVOCATION:
-		strcat(buf, ",0");
+		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "i" : ",0");
 		break;
 	case OFONO_CLIR_OPTION_SUPPRESSION:
-		strcat(buf, ",1");
+		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "I" : ",1");
 		break;
 	default:
 		break;
 	}
 
-	strcat(buf, "\n");
+	if (vd->vendor != OFONO_VENDOR_MOTMDM)
+		strcat(buf, ";");
 
 	if (g_at_chat_send(vd->chat, buf, atd_prefix,
 				atd_cb, cbd, g_free) > 0)
@@ -1089,8 +1090,6 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 	if (!g_at_result_iter_next_number(&iter, &ind))
 		return;
 
-	printf("Got ciev...: \n");
-	
 	if (ind != 1)
 		return;
 
@@ -1101,28 +1100,28 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 
 	switch (strength) {
 	case 7: /* outgoing call starts */
-	  printf("Outgoing notification, but ATD should have created it for us\n");
-	  break;
+		printf("Outgoing notification, but ATD should have created it for us\n");
+		break;
 	case 4: /* call incoming ringing */
-	  printf("Call ringing\n");
-	  call = create_call(vc, 9, 1, CALL_STATUS_INCOMING, NULL, 128, 2);
-	  if (call == NULL) {
-		ofono_error("Couldn't create call, call management is fubar!");
-		return;
-	  }
-	  call->type = 0;
-	  vd->flags = FLAG_NEED_CLIP;
-	  /* FIXME: we should really do that at +CLIP callback .. when that works */
-	  //ofono_voicecall_notify(vc, call);
-	  break;
+		printf("Call ringing\n");
+		call = create_call(vc, 9, 1, CALL_STATUS_INCOMING, NULL, 128, 2);
+		if (call == NULL) {
+			ofono_error("Couldn't create call, call management is fubar!");
+			return;
+		}
+		call->type = 0;
+		vd->flags = FLAG_NEED_CLIP;
+		/* FIXME: we should really do that at +CLIP callback .. when that works */
+		//ofono_voicecall_notify(vc, call);
+		break;
 	case 0: /* call ends */
-	  call = vd->calls->data;
+		call = vd->calls->data;
 	  
-	  reason = OFONO_DISCONNECT_REASON_REMOTE_HANGUP;
-	  if (!call->type)
-	    ofono_voicecall_disconnected(vc, call->id, reason, NULL);
+		reason = OFONO_DISCONNECT_REASON_REMOTE_HANGUP;
+		if (!call->type)
+			ofono_voicecall_disconnected(vc, call->id, reason, NULL);
 
-	  printf("Call ends\n"); break;
+		printf("Call ends\n"); break;
 	}	   
 }
 
@@ -1202,9 +1201,9 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 	}
 
 	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
-	g_at_chat_send(vd->chat, "AT+CSSN=1,1", NULL, NULL, NULL, NULL);
-	g_at_chat_send(vd->chat, "AT+VTD?", NULL,
-				vtd_query_cb, vc, NULL);
+		g_at_chat_send(vd->chat, "AT+CSSN=1,1", NULL, NULL, NULL, NULL);
+		g_at_chat_send(vd->chat, "AT+VTD?", NULL,
+			       vtd_query_cb, vc, NULL);
 	}
 	g_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
 				at_voicecall_initialized, vc, NULL);
