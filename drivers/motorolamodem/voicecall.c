@@ -33,17 +33,13 @@
 #include <ofono/log.h>
 #include <ofono/modem.h>
 #include <ofono/voicecall.h>
-#include "../atmodem/vendor.h"
 
 #include "gatchat.h"
 #include "gatresult.h"
 
 #include "common.h"
 
-#include "../atmodem/atmodem.h"
-
- /* Amount of time we give for CLIP to arrive before we commence CLCC poll */
-#define CLIP_INTERVAL 200
+#include "motorolamodem.h"
 
  /* When +VTD returns 0, an unspecified manufacturer-specific delay is used */
 #define TONE_DURATION 1000
