@@ -42,9 +42,6 @@
 
 #include "../atmodem/atmodem.h"
 
-/* Amount of ms we wait between CLCC calls */
-#define POLL_CLCC_INTERVAL 500
-
  /* Amount of time we give for CLIP to arrive before we commence CLCC poll */
 #define CLIP_INTERVAL 200
 
@@ -85,8 +82,6 @@ struct change_state_req {
 	void *data;
 	int affected_types;
 };
-
-static gboolean poll_clcc(gpointer user_data);
 
 static int class_to_call_type(int cls)
 {
@@ -135,21 +130,6 @@ static struct ofono_call *create_call(struct ofono_voicecall *vc, int type,
 	return call;
 }
 
-static void send_clcc(struct voicecall_data *vd, struct ofono_voicecall *vc)
-{
-}
-
-static gboolean poll_clcc(gpointer user_data)
-{
-	struct ofono_voicecall *vc = user_data;
-	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
-
-	send_clcc(vd, vc);
-	vd->clcc_source = 0;
-
-	return FALSE;
-}
-
 static void generic_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
 	struct change_state_req *req = user_data;
@@ -170,8 +150,6 @@ static void generic_cb(gboolean ok, GAtResult *result, gpointer user_data)
 		}
 	}
 
-	send_clcc(vd, req->vc);
-
 	/* We have to callback after we schedule a poll if required */
 	req->cb(&error, req->data);
 }
@@ -187,8 +165,6 @@ static void release_id_cb(gboolean ok, GAtResult *result,
 
 	if (ok)
 		vd->local_release = 1 << req->id;
-
-	send_clcc(vd, req->vc);
 
 	/* We have to callback after we schedule a poll if required */
 	req->cb(&error, req->data);
@@ -253,9 +229,6 @@ static void atd_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	if (validity != 2)
 		ofono_voicecall_notify(vc, call);
 
-	if (!vd->clcc_source)
-		vd->clcc_source = g_timeout_add(POLL_CLCC_INTERVAL,
-						poll_clcc, vc);
 
 out:
 	cb(&error, cbd->data);
@@ -531,7 +504,6 @@ static void ring_notify(GAtResult *result, gpointer user_data)
 	}
 
 	/* We don't know the call type, we must run clcc */
-	vd->clcc_source = g_timeout_add(CLIP_INTERVAL, poll_clcc, vc);
 	vd->flags = FLAG_NEED_CLIP | FLAG_NEED_CNAP | FLAG_NEED_CDIP;
 }
 
@@ -584,7 +556,6 @@ static void cring_notify(GAtResult *result, gpointer user_data)
 	 * So we wait, and schedule the clcc call.  If the CLIP arrives
 	 * earlier, we announce the call there
 	 */
-	vd->clcc_source = g_timeout_add(CLIP_INTERVAL, poll_clcc, vc);
 	vd->flags = FLAG_NEED_CLIP | FLAG_NEED_CNAP | FLAG_NEED_CDIP;
 
 	DBG("");
@@ -811,38 +782,6 @@ static void ccwa_notify(GAtResult *result, gpointer user_data)
 
 	if (call->type == 0) /* Only notify voice calls */
 		ofono_voicecall_notify(vc, call);
-
-	if (vd->clcc_source == 0)
-		vd->clcc_source = g_timeout_add(POLL_CLCC_INTERVAL,
-						poll_clcc, vc);
-}
-
-static void no_carrier_notify(GAtResult *result, gpointer user_data)
-{
-	struct ofono_voicecall *vc = user_data;
-	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
-
-	send_clcc(vd, vc);
-}
-
-static void no_answer_notify(GAtResult *result, gpointer user_data)
-{
-	struct ofono_voicecall *vc = user_data;
-	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
-
-	send_clcc(vd, vc);
-}
-
-static void busy_notify(GAtResult *result, gpointer user_data)
-{
-	struct ofono_voicecall *vc = user_data;
-	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
-
-	/* Call was rejected, most likely due to network congestion
-	 * or UDUB on the other side
-	 * TODO: Handle UDUB or other conditions somehow
-	 */
-	send_clcc(vd, vc);
 }
 
 static void cssi_notify(GAtResult *result, gpointer user_data)
@@ -972,15 +911,6 @@ static void at_voicecall_initialized(gboolean ok, GAtResult *result,
 	g_at_chat_register(vd->chat, "+CDIP:", cdip_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CNAP:", cnap_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CCWA:", ccwa_notify, FALSE, vc, NULL);
-
-	/* Modems with 'better' call progress indicators should
-	 * probably not even bother registering to these
-	 */
-	g_at_chat_register(vd->chat, "NO CARRIER",
-				no_carrier_notify, FALSE, vc, NULL);
-	g_at_chat_register(vd->chat, "NO ANSWER",
-				no_answer_notify, FALSE, vc, NULL);
-	g_at_chat_register(vd->chat, "BUSY", busy_notify, FALSE, vc, NULL);
 
 	g_at_chat_register(vd->chat, "+CSSI:", cssi_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CSSU:", cssu_notify, FALSE, vc, NULL);
