@@ -51,7 +51,6 @@
  /* When +VTD returns 0, an unspecified manufacturer-specific delay is used */
 #define TONE_DURATION 1000
 
-static const char *clcc_prefix[] = { "+CLCC:", NULL };
 static const char *none_prefix[] = { NULL };
 
 /* According to 27.007 COLP is an intermediate status for ATD */
@@ -134,119 +133,6 @@ static struct ofono_call *create_call(struct ofono_voicecall *vc, int type,
 	d->calls = g_slist_insert_sorted(d->calls, call, at_util_call_compare);
 
 	return call;
-}
-
-static void clcc_poll_cb(gboolean ok, GAtResult *result, gpointer user_data)
-{
-	struct ofono_voicecall *vc = user_data;
-	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
-	GSList *calls;
-	GSList *n, *o;
-	struct ofono_call *nc, *oc;
-	gboolean poll_again = FALSE;
-	struct ofono_error error;
-
-	decode_at_error(&error, g_at_result_final_response(result));
-
-	if (!ok) {
-		ofono_error("We are polling CLCC and received an error");
-		ofono_error("All bets are off for call management");
-		return;
-	}
-
-	calls = at_util_parse_clcc(result, NULL);
-
-	n = calls;
-	o = vd->calls;
-
-	while (n || o) {
-		nc = n ? n->data : NULL;
-		oc = o ? o->data : NULL;
-
-		switch (vd->vendor) {
-		default:
-			if (nc && nc->status >= CALL_STATUS_DIALING &&
-					nc->status <= CALL_STATUS_WAITING)
-				poll_again = TRUE;
-			break;
-		}
-
-		if (oc && (nc == NULL || (nc->id > oc->id))) {
-			enum ofono_disconnect_reason reason;
-
-			if (vd->local_release & (1 << oc->id))
-				reason = OFONO_DISCONNECT_REASON_LOCAL_HANGUP;
-			else
-				reason = OFONO_DISCONNECT_REASON_REMOTE_HANGUP;
-
-			if (!oc->type)
-				ofono_voicecall_disconnected(vc, oc->id,
-								reason, NULL);
-
-			o = o->next;
-		} else if (nc && (oc == NULL || (nc->id < oc->id))) {
-			/* new call, signal it */
-			if (nc->type == 0)
-				ofono_voicecall_notify(vc, nc);
-
-			n = n->next;
-		} else {
-			/*
-			 * Always use the clip_validity from old call
-			 * the only place this is truly told to us is
-			 * in the CLIP notify, the rest are fudged
-			 * anyway.  Useful when RING, CLIP is used,
-			 * and we're forced to use CLCC and clip_validity
-			 * is 1
-			 */
-			if (oc->clip_validity == 1)
-				nc->clip_validity = oc->clip_validity;
-
-			/*
-			 * CNAP doesn't arrive as part of CLCC, always
-			 * re-use from the old call
-			 */
-			strncpy(nc->name, oc->name,
-					OFONO_MAX_CALLER_NAME_LENGTH);
-			nc->name[OFONO_MAX_CALLER_NAME_LENGTH] = '\0';
-			nc->cnap_validity = oc->cnap_validity;
-
-			/*
-			 * CDIP doesn't arrive as part of CLCC, always
-			 * re-use from the old call
-			 */
-			memcpy(&nc->called_number, &oc->called_number,
-					sizeof(oc->called_number));
-
-			/*
-			 * If the CLIP is not provided and the CLIP never
-			 * arrives, or RING is used, then signal the call
-			 * here
-			 */
-			if (nc->status == CALL_STATUS_INCOMING &&
-					(vd->flags & FLAG_NEED_CLIP)) {
-				if (nc->type == 0)
-					ofono_voicecall_notify(vc, nc);
-
-				vd->flags &= ~FLAG_NEED_CLIP;
-			} else if (memcmp(nc, oc, sizeof(*nc)) && nc->type == 0)
-				ofono_voicecall_notify(vc, nc);
-
-			n = n->next;
-			o = o->next;
-		}
-	}
-
-	g_slist_free_full(vd->calls, g_free);
-
-	vd->calls = calls;
-
-	vd->local_release = 0;
-
-poll_again:
-	if (poll_again && !vd->clcc_source)
-		vd->clcc_source = g_timeout_add(POLL_CLCC_INTERVAL,
-						poll_clcc, vc);
 }
 
 static void send_clcc(struct voicecall_data *vd, struct ofono_voicecall *vc)
@@ -448,21 +334,6 @@ static void at_hangup(struct ofono_voicecall *vc,
 	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
 
 	at_template("ATH", vc, generic_cb, 0x3f, cb, data);
-}
-
-static void clcc_cb(gboolean ok, GAtResult *result, gpointer user_data)
-{
-	struct ofono_voicecall *vc = user_data;
-	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
-	GSList *l;
-
-	if (!ok)
-		return;
-
-	vd->calls = at_util_parse_clcc(result, NULL);
-
-	for (l = vd->calls; l; l = l->next)
-		ofono_voicecall_notify(vc, l->data);
 }
 
 static void at_hold_all_active(struct ofono_voicecall *vc,
@@ -1027,26 +898,6 @@ static void cssu_notify(GAtResult *result, gpointer user_data)
 
 out:
 	ofono_voicecall_ssn_mt_notify(vc, 0, code, index, &ph);
-}
-
-static void vtd_query_cb(gboolean ok, GAtResult *result, gpointer user_data)
-{
-	struct ofono_voicecall *vc = user_data;
-	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
-	GAtResultIter iter;
-	int duration;
-
-	if (!ok)
-		return;
-
-	g_at_result_iter_init(&iter, result);
-	g_at_result_iter_next(&iter, "+VTD:");
-
-	if (!g_at_result_iter_next_number(&iter, &duration))
-		return;
-
-	if (duration)
-		vd->tone_duration = duration * 100;
 }
 
 
