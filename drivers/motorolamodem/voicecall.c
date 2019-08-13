@@ -149,18 +149,6 @@ static void clcc_poll_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	decode_at_error(&error, g_at_result_final_response(result));
 
 	if (!ok) {
-		/*
-		 * On certain Option GTM modems CLCC polling can fail
-		 * with a CME ERROR: 100.  It seems to be safe to ignore
-		 * it and continue polling anyway
-		 */
-		if (vd->vendor == OFONO_VENDOR_QUALCOMM_MSM &&
-				error.type == OFONO_ERROR_TYPE_CME &&
-				error.error == 100) {
-			poll_again = TRUE;
-			goto poll_again;
-		}
-
 		ofono_error("We are polling CLCC and received an error");
 		ofono_error("All bets are off for call management");
 		return;
@@ -176,9 +164,6 @@ static void clcc_poll_cb(gboolean ok, GAtResult *result, gpointer user_data)
 		oc = o ? o->data : NULL;
 
 		switch (vd->vendor) {
-		case OFONO_VENDOR_QUALCOMM_MSM:
-			poll_again = TRUE;
-			break;
 		default:
 			if (nc && nc->status >= CALL_STATUS_DIALING &&
 					nc->status <= CALL_STATUS_WAITING)
@@ -266,8 +251,6 @@ poll_again:
 
 static void send_clcc(struct voicecall_data *vd, struct ofono_voicecall *vc)
 {
-	if (vd->vendor != OFONO_VENDOR_MOTMDM)
-	g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix, clcc_poll_cb, vc, NULL);
 }
 
 static gboolean poll_clcc(gpointer user_data)
@@ -410,17 +393,14 @@ static void at_dial(struct ofono_voicecall *vc,
 
 	switch (clir) {
 	case OFONO_CLIR_OPTION_INVOCATION:
-		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "I" : ",0");
+		strcat(buf, ",0");
 		break;
 	case OFONO_CLIR_OPTION_SUPPRESSION:
-		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "i" : ",1");
+		strcat(buf, ",1");
 		break;
 	default:
 		break;
 	}
-
-	if (vd->vendor != OFONO_VENDOR_MOTMDM)
-		strcat(buf, ";");
 
 	if (g_at_chat_send(vd->chat, buf, atd_prefix,
 				atd_cb, cbd, g_free) > 0)
@@ -467,11 +447,7 @@ static void at_hangup(struct ofono_voicecall *vc,
 {
 	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
 
-	/* Hangup active call */
-	if (vd->vendor != OFONO_VENDOR_MOTMDM)
-		at_template("AT+CHUP", vc, generic_cb, 0x3f, cb, data);
-	else
-		at_template("ATH", vc, generic_cb, 0x3f, cb, data);
+	at_template("ATH", vc, generic_cb, 0x3f, cb, data);
 }
 
 static void clcc_cb(gboolean ok, GAtResult *result, gpointer user_data)
@@ -1159,10 +1135,6 @@ static void at_voicecall_initialized(gboolean ok, GAtResult *result,
 	g_at_chat_register(vd->chat, "+CSSU:", cssu_notify, FALSE, vc, NULL);
 
 	ofono_voicecall_register(vc);
-
-	/* Populate the call list */
-	if (vd->vendor != OFONO_VENDOR_MOTMDM)
-		g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix, clcc_cb, vc, NULL);
 }
 
 static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
@@ -1181,32 +1153,8 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 
 	ofono_voicecall_set_data(vc, vd);
 
-	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
-		g_at_chat_send(vd->chat, "AT+CRC=1", NULL, NULL, NULL, NULL);
-	}
 	g_at_chat_send(vd->chat, "AT+CLIP=1", NULL, NULL, NULL, NULL);
-	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
-		g_at_chat_send(vd->chat, "AT+CDIP=1", NULL, NULL, NULL, NULL);
-		g_at_chat_send(vd->chat, "AT+CNAP=1", NULL, NULL, NULL, NULL);
-	}
 
-	switch (vd->vendor) {
-	case OFONO_VENDOR_MOTMDM:
-		break;
-	case OFONO_VENDOR_QUALCOMM_MSM:
-	case OFONO_VENDOR_SIMCOM:
-		g_at_chat_send(vd->chat, "AT+COLP=0", NULL, NULL, NULL, NULL);
-		break;
-	default:
-		g_at_chat_send(vd->chat, "AT+COLP=1", NULL, NULL, NULL, NULL);
-		break;
-	}
-
-	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
-		g_at_chat_send(vd->chat, "AT+CSSN=1,1", NULL, NULL, NULL, NULL);
-		g_at_chat_send(vd->chat, "AT+VTD?", NULL,
-			       vtd_query_cb, vc, NULL);
-	}
 	g_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
 				at_voicecall_initialized, vc, NULL);
 
@@ -1232,7 +1180,7 @@ static void at_voicecall_remove(struct ofono_voicecall *vc)
 }
 
 static const struct ofono_voicecall_driver driver = {
-	.name			= "atmodem",
+	.name			= "motorolamodem",
 	.probe			= at_voicecall_probe,
 	.remove			= at_voicecall_remove,
 	.dial			= at_dial,
