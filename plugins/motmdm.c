@@ -61,7 +61,6 @@
 #include "gatio.h"
 #include "gatchat.h"
 
-#include <drivers/atmodem/vendor.h>
 #include <drivers/motorolamodem/motorolamodem.h>
 
 #define NUM_DLC 3
@@ -341,8 +340,8 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-	data->sim = ofono_sim_create(modem, OFONO_VENDOR_MOTMDM, "nonexistingfoomodem", data->dlcs[VOICE_DLC]);
-	ofono_voicecall_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
+	data->sim = ofono_sim_create(modem, 0, "nonexistingfoomodem", data->dlcs[VOICE_DLC]);
+	ofono_voicecall_create(modem, 0, "motorolamodem", data->dlcs[VOICE_DLC]);
 #if 1
 	{
 		struct motorola_sms_params motorola_sms_params = {
@@ -350,7 +349,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 			.send_chat = data->dlcs[OUTSMS_DLC],
 		};
 		DBG("sms create");
-		sms_hack = ofono_sms_create(modem, OFONO_VENDOR_MOTMDM, "motorolamodem", &motorola_sms_params);
+		sms_hack = ofono_sms_create(modem, 0, "motorolamodem", &motorola_sms_params);
 		DBG("sms create done.");		
 		ofono_sms_register(sms_hack);
 		DBG("sms registered.");

@@ -1,4 +1,4 @@
-/*
+/* -*- linux-c -*-
  *
  *  oFono - Open Source Telephony
  *
@@ -34,6 +34,7 @@
 
 static int motorolamodem_init(void)
 {
+	motorola_voicecall_init();
 	motorola_sms_init();
 
 	return 0;
@@ -42,6 +43,7 @@ static int motorolamodem_init(void)
 static void motorolamodem_exit(void)
 {
 	motorola_sms_exit();
+	motorola_voicecall_exit();
 }
 
 OFONO_PLUGIN_DEFINE(motorolamodem, "Motorola modem driver", VERSION,
