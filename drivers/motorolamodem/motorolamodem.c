@@ -35,12 +35,14 @@
 static int motorolamodem_init(void)
 {
 	motorola_voicecall_init();
+	motorola_sms_init();
 
 	return 0;
 }
 
 static void motorolamodem_exit(void)
 {
+	motorola_sms_exit();
 	motorola_voicecall_exit();
 }
 
