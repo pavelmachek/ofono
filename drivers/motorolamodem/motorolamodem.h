@@ -50,6 +50,13 @@ struct motorola_sms_params {
 struct motorola_netreg_params {
 	struct ofono_netreg *qmi_netreg;
 	GAtChat *recv;
+
+extern void motorola_netreg_init(void);
+extern void motorola_netreg_exit(void);
+
+struct motorola_sms_params {
+  GMotChat *receive_chat;
+  GMotChat *send_chat;
 };
 
 struct motorola_netmon_params {
