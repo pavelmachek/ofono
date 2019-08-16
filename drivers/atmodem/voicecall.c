@@ -1,4 +1,4 @@
-/*
+/* -*- linux-c -*-
  *
  *  oFono - Open Source Telephony
  *
@@ -409,16 +409,17 @@ static void at_dial(struct ofono_voicecall *vc,
 
 	switch (clir) {
 	case OFONO_CLIR_OPTION_INVOCATION:
-		strcat(buf, "I");
+		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "I" : ",0");
 		break;
 	case OFONO_CLIR_OPTION_SUPPRESSION:
-		strcat(buf, "i");
+		strcat(buf, (vd->vendor != OFONO_VENDOR_MOTMDM) ? "i" : ",1");
 		break;
 	default:
 		break;
 	}
 
-	strcat(buf, ";");
+	if (vd->vendor != OFONO_VENDOR_MOTMDM)
+		strcat(buf, ";");
 
 	if (g_at_chat_send(vd->chat, buf, atd_prefix,
 				atd_cb, cbd, g_free) > 0)
@@ -463,8 +464,13 @@ static void at_answer(struct ofono_voicecall *vc,
 static void at_hangup(struct ofono_voicecall *vc,
 			ofono_voicecall_cb_t cb, void *data)
 {
+	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
+
 	/* Hangup active call */
-	at_template("AT+CHUP", vc, generic_cb, 0x3f, cb, data);
+	if (vd->vendor != OFONO_VENDOR_MOTMDM)
+		at_template("AT+CHUP", vc, generic_cb, 0x3f, cb, data);
+	else
+		at_template("ATH", vc, generic_cb, 0x3f, cb, data);
 }
 
 static void clcc_cb(gboolean ok, GAtResult *result, gpointer user_data)
@@ -746,6 +752,8 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 	GSList *l;
 	struct ofono_call *call;
 
+	printf("got clip, searching for incoming calls\n");
+
 	l = g_slist_find_custom(vd->calls,
 				GINT_TO_POINTER(CALL_STATUS_INCOMING),
 				at_util_call_compare_by_status);
@@ -760,7 +768,10 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 
 	g_at_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "+CLIP:"))
+	printf("Got clip...\n");
+
+	if (/* !g_at_result_iter_next(&iter, "+CLIP:") && */
+	    !g_at_result_iter_next(&iter, "~+CLIP="))
 		return;
 
 	if (!g_at_result_iter_next_string(&iter, &num))
@@ -1061,6 +1072,61 @@ static void vtd_query_cb(gboolean ok, GAtResult *result, gpointer user_data)
 		vd->tone_duration = duration * 100;
 }
 
+
+static void ciev_notify(GAtResult *result, gpointer user_data)
+{
+  	struct ofono_voicecall *vc = user_data;
+	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
+	int strength, ind;
+	GAtResultIter iter;
+	struct ofono_call *call;
+	enum ofono_disconnect_reason reason;
+
+	g_at_result_iter_init(&iter, result);
+
+	printf("Got ciev...\n");
+	if (!g_at_result_iter_next(&iter, "~+CIEV="))
+		return;
+
+	if (!g_at_result_iter_next_number(&iter, &ind))
+		return;
+
+	if (ind != 1)
+		return;
+
+	if (!g_at_result_iter_next_number(&iter, &strength))
+		return;
+
+	printf("Got ciev 1,%d...: \n", strength);
+
+	switch (strength) {
+	case 7: /* outgoing call starts */
+		printf("Outgoing notification, but ATD should have created it for us\n");
+		break;
+	case 4: /* call incoming ringing */
+		printf("Call ringing\n");
+		call = create_call(vc, 9, 1, CALL_STATUS_INCOMING, NULL, 128, 2);
+		if (call == NULL) {
+			ofono_error("Couldn't create call, call management is fubar!");
+			return;
+		}
+		call->type = 0;
+		vd->flags = FLAG_NEED_CLIP;
+		/* FIXME: we should really do that at +CLIP callback .. when that works */
+		//ofono_voicecall_notify(vc, call);
+		break;
+	case 0: /* call ends */
+		call = vd->calls->data;
+	  
+		reason = OFONO_DISCONNECT_REASON_REMOTE_HANGUP;
+		if (!call->type)
+			ofono_voicecall_disconnected(vc, call->id, reason, NULL);
+
+		printf("Call ends\n"); break;
+	}	   
+}
+
+
 static void at_voicecall_initialized(gboolean ok, GAtResult *result,
 					gpointer user_data)
 {
@@ -1072,6 +1138,9 @@ static void at_voicecall_initialized(gboolean ok, GAtResult *result,
 	g_at_chat_register(vd->chat, "RING", ring_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CRING:", cring_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CLIP:", clip_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "~+CLIP=", clip_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "~+CIEV=", ciev_notify, FALSE, vc, NULL);
+	
 	g_at_chat_register(vd->chat, "+CDIP:", cdip_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CNAP:", cnap_notify, FALSE, vc, NULL);
 	g_at_chat_register(vd->chat, "+CCWA:", ccwa_notify, FALSE, vc, NULL);
@@ -1091,7 +1160,8 @@ static void at_voicecall_initialized(gboolean ok, GAtResult *result,
 	ofono_voicecall_register(vc);
 
 	/* Populate the call list */
-	g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix, clcc_cb, vc, NULL);
+	if (vd->vendor != OFONO_VENDOR_MOTMDM)
+		g_at_chat_send(vd->chat, "AT+CLCC", clcc_prefix, clcc_cb, vc, NULL);
 }
 
 static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
@@ -1110,12 +1180,18 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 
 	ofono_voicecall_set_data(vc, vd);
 
-	g_at_chat_send(vd->chat, "AT+CRC=1", NULL, NULL, NULL, NULL);
+	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
+		g_at_chat_send(vd->chat, "AT+CRC=1", NULL, NULL, NULL, NULL);
+	}
 	g_at_chat_send(vd->chat, "AT+CLIP=1", NULL, NULL, NULL, NULL);
-	g_at_chat_send(vd->chat, "AT+CDIP=1", NULL, NULL, NULL, NULL);
-	g_at_chat_send(vd->chat, "AT+CNAP=1", NULL, NULL, NULL, NULL);
+	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
+		g_at_chat_send(vd->chat, "AT+CDIP=1", NULL, NULL, NULL, NULL);
+		g_at_chat_send(vd->chat, "AT+CNAP=1", NULL, NULL, NULL, NULL);
+	}
 
 	switch (vd->vendor) {
+	case OFONO_VENDOR_MOTMDM:
+		break;
 	case OFONO_VENDOR_QUALCOMM_MSM:
 	case OFONO_VENDOR_SIMCOM:
 		g_at_chat_send(vd->chat, "AT+COLP=0", NULL, NULL, NULL, NULL);
@@ -1125,9 +1201,11 @@ static int at_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 		break;
 	}
 
-	g_at_chat_send(vd->chat, "AT+CSSN=1,1", NULL, NULL, NULL, NULL);
-	g_at_chat_send(vd->chat, "AT+VTD?", NULL,
-				vtd_query_cb, vc, NULL);
+	if (vd->vendor != OFONO_VENDOR_MOTMDM) {
+		g_at_chat_send(vd->chat, "AT+CSSN=1,1", NULL, NULL, NULL, NULL);
+		g_at_chat_send(vd->chat, "AT+VTD?", NULL,
+			       vtd_query_cb, vc, NULL);
+	}
 	g_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
 				at_voicecall_initialized, vc, NULL);
 
