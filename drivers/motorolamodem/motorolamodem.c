@@ -1,4 +1,4 @@
-/*
+/* -*- linux-c -*-
  *
  *  oFono - Open Source Telephony
  *
@@ -24,6 +24,7 @@
 #endif
 
 #include <glib.h>
+#include <motchat.h>
 #include <gatchat.h>
 #include <stdio.h>
 
@@ -35,7 +36,7 @@
 
 #include "motorolamodem.h"
 
-guint mot_at_chat_send(GAtChat *chat, const char *cmd,
+guint mot_at_chat_send(GMotChat *chat, const char *cmd,
 				const char **valid_resp, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify)
 {
@@ -57,12 +58,14 @@ static int motorolamodem_init(void)
 	motorola_netmon_init();
 	motorola_voicecall_init();
 	motorola_sms_init();
+	motorola_netreg_init();
 
 	return 0;
 }
 
 static void motorolamodem_exit(void)
 {
+	motorola_netreg_exit();
 	motorola_sms_exit();
 	motorola_voicecall_exit();
 	motorola_netmon_exit();

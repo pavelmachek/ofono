@@ -19,7 +19,10 @@
  *
  */
 
+#ifndef __MOTOROLAMODEM_H
+#define __MOTOROLAMODEM_H
 #include <stdint.h>
+#include <motchat.h>
 
 struct ofono_modem;
 
@@ -32,7 +35,7 @@ extern void motorola_netmon_exit(void);
 extern void motorola_voicecall_init(void);
 extern void motorola_voicecall_exit(void);
 
-extern guint mot_at_chat_send(GAtChat *chat, const char *cmd,
+extern guint mot_at_chat_send(GMotChat *chat, const char *cmd,
 				const char **valid_resp, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify);
 
@@ -43,16 +46,27 @@ struct ofono_sms;
 
 struct motorola_sms_params {
 	struct ofono_modem *modem;
-	GAtChat *recv;
-	GAtChat *xmit;
+	GMotChat *receive_chat;
+	GMotChat *send_chat;
 };
 
 struct motorola_netreg_params {
 	struct ofono_netreg *qmi_netreg;
-	GAtChat *recv;
+	GMotChat *recv;
 };
+
+extern void motorola_netreg_init(void);
+extern void motorola_netreg_exit(void);
 
 struct motorola_netmon_params {
 	struct ofono_modem *modem;
-	GAtChat *recv;
+	GMotChat *recv;
 };
+
+extern void motorola_voicecall_init(void);
+extern void motorola_voicecall_exit(void);
+
+extern void motorola_sms_init(void);
+extern void motorola_sms_exit(void);
+
+#endif
