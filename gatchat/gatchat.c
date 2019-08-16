@@ -75,43 +75,6 @@ struct at_notify {
 	gboolean pdu;
 };
 
-struct at_chat {
-	gint ref_count;				/* Ref count */
-	guint next_cmd_id;			/* Next command id */
-	guint next_notify_id;			/* Next notify id */
-	guint next_gid;				/* Next group id */
-	GAtIO *io;				/* AT IO */
-	GQueue *command_queue;			/* Command queue */
-	guint cmd_bytes_written;		/* bytes written from cmd */
-	GHashTable *notify_list;		/* List of notification reg */
-	GAtDisconnectFunc user_disconnect;	/* user disconnect func */
-	gpointer user_disconnect_data;		/* user disconnect data */
-	guint read_so_far;			/* Number of bytes processed */
-	gboolean suspended;			/* Are we suspended? */
-	GAtDebugFunc debugf;			/* debugging output function */
-	gpointer debug_data;			/* Data to pass to debug func */
-	char *pdu_notify;			/* Unsolicited Resp w/ PDU */
-	GSList *response_lines;			/* char * lines of the response */
-	char *wakeup;				/* command sent to wakeup modem */
-	gint timeout_source;
-	gdouble inactivity_time;		/* Period of inactivity */
-	guint wakeup_timeout;			/* How long to wait for resp */
-	GTimer *wakeup_timer;			/* Keep track of elapsed time */
-	GAtSyntax *syntax;
-	gboolean destroyed;			/* Re-entrancy guard */
-	gboolean in_read_handler;		/* Re-entrancy guard */
-	gboolean in_notify;
-	GSList *terminator_list;		/* Non-standard terminator */
-	guint16 terminator_blacklist;		/* Blacklisted terinators */
-};
-
-struct _GAtChat {
-	gint ref_count;
-	struct at_chat *parent;
-	guint group;
-	GAtChat *slave;
-};
-
 struct terminator_info {
 	char *terminator;
 	int len;
@@ -270,13 +233,22 @@ static struct at_command *at_command_create(guint gid, const char *cmd,
 
 	memcpy(c->cmd, cmd, len);
 
+	printf("Have command of length %d (%s)\n", len, cmd);
+
 	/* If we have embedded '\r' then this is a command expecting a prompt
 	 * from the modem.  Embed Ctrl-Z at the very end automatically
 	 */
 	if (wakeup == FALSE) {
-		if (strchr(cmd, '\r'))
-			c->cmd[len] = 26;
-		else
+	  printf("Adding \r or ^z\n");
+	  if (strchr(cmd, '\r')) {
+			c->cmd[len++] = 26;
+	    
+#if 0
+			c->cmd[len++] = 26;
+			c->cmd[len++] = '\n';			
+			c->cmd[len] = '\r';
+#endif
+	  } else
 			c->cmd[len] = '\r';
 
 		len += 1;
@@ -530,18 +502,23 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 			return TRUE;
 		}
 	}
-
+	
 	if (cmd->prefixes) {
 		int n;
 
-		for (n = 0; cmd->prefixes[n]; n++)
+		for (n = 0; cmd->prefixes[n]; n++) {
+		  printf("Command prefixes: %s / %s\n", line, cmd->prefixes[n]);
+
 			if (g_str_has_prefix(line, cmd->prefixes[n]))
 				goto out;
+		}
 
+		printf("Prefix not found\n");
 		return FALSE;
 	}
 
 out:
+	printf("Going out... pdu/multiline?!\n");
 	if (cmd->listing && (cmd->flags & COMMAND_FLAG_EXPECT_PDU))
 		hint = G_AT_SYNTAX_EXPECT_PDU;
 	else
@@ -597,14 +574,19 @@ static void have_line(struct at_chat *p, char *str)
 		 * final response from the modem, so we check this as well.
 		 */
 		if ((c == '\r' || c == 26) &&
-				at_chat_handle_command_response(p, cmd, str))
+		    at_chat_handle_command_response(p, cmd, str)) {
+		  printf("handle command response\n");
 			return;
+		}
 	}
 
-	if (at_chat_match_notify(p, str) == TRUE)
+	if (at_chat_match_notify(p, str) == TRUE) {
+	  printf("match notify said true\n");
 		return;
+	}
 
 done:
+	printf("ignoring line\n");
 	/* No matches & no commands active, ignore line */
 	g_free(str);
 }
@@ -882,14 +864,16 @@ static gboolean can_write_data(gpointer data)
 
 	cr = strchr(cmd->cmd + chat->cmd_bytes_written, '\r');
 
-	if (cr)
-		towrite = cr - (cmd->cmd + chat->cmd_bytes_written) + 1;
+	if (cr) {
+	  //printf("FIXME: hack, not limiting to first r\n");
+	  towrite = cr - (cmd->cmd + chat->cmd_bytes_written) + 1;
+	}
 
 #ifdef WRITE_SCHEDULER_DEBUG
 	limiter = towrite;
 
-	if (limiter > 5)
-		limiter = 5;
+	if (limiter > 1)
+		limiter = 1;
 #endif
 
 	bytes_written = g_at_io_write(chat->io,
@@ -1192,7 +1176,7 @@ static guint at_chat_register(struct at_chat *chat, guint group,
 	if (func == NULL)
 		return 0;
 
-	if (prefix == NULL || strlen(prefix) == 0)
+	if (prefix == NULL)
 		return 0;
 
 	notify = g_hash_table_lookup(chat->notify_list, prefix);

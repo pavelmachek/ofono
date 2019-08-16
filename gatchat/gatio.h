@@ -61,6 +61,28 @@ gboolean g_at_io_set_disconnect_function(GAtIO *io,
 
 gboolean g_at_io_set_debug(GAtIO *io, GAtDebugFunc func, gpointer user_data);
 
+struct _GAtIO {
+	gint ref_count;				/* Ref count */
+	guint read_watch;			/* GSource read id, 0 if no */
+	guint write_watch;			/* GSource write id, 0 if no */
+	GIOChannel *channel;			/* comms channel */
+	GAtDisconnectFunc user_disconnect;	/* user disconnect func */
+	gpointer user_disconnect_data;		/* user disconnect data */
+	struct ring_buffer *buf;		/* Current read buffer */
+	guint max_read_attempts;		/* max reads / select */
+	GAtIOReadFunc read_handler;		/* Read callback */
+	gpointer read_data;			/* Read callback userdata */
+	gboolean use_write_watch;		/* Use write select */
+	GAtIOWriteFunc write_handler;		/* Write callback */
+	gpointer write_data;			/* Write callback userdata */
+	GAtDebugFunc debugf;			/* debugging output function */
+	gpointer debug_data;			/* Data to pass to debug func */
+	GAtDisconnectFunc write_done_func;	/* tx empty notifier */
+	gpointer write_done_data;		/* tx empty data */
+	gboolean destroyed;			/* Re-entrancy guard */
+};
+
+
 #ifdef __cplusplus
 }
 #endif

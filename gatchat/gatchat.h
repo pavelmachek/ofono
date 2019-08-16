@@ -174,6 +174,43 @@ void g_at_chat_add_terminator(GAtChat *chat, char *terminator,
 void g_at_chat_blacklist_terminator(GAtChat *chat,
 						GAtChatTerminator terminator);
 
+struct _GAtChat {
+	gint ref_count;
+	struct at_chat *parent;
+	guint group;
+	GAtChat *slave;
+};
+
+struct at_chat {
+	gint ref_count;				/* Ref count */
+	guint next_cmd_id;			/* Next command id */
+	guint next_notify_id;			/* Next notify id */
+	guint next_gid;				/* Next group id */
+	GAtIO *io;				/* AT IO */
+	GQueue *command_queue;			/* Command queue */
+	guint cmd_bytes_written;		/* bytes written from cmd */
+	GHashTable *notify_list;		/* List of notification reg */
+	GAtDisconnectFunc user_disconnect;	/* user disconnect func */
+	gpointer user_disconnect_data;		/* user disconnect data */
+	guint read_so_far;			/* Number of bytes processed */
+	gboolean suspended;			/* Are we suspended? */
+	GAtDebugFunc debugf;			/* debugging output function */
+	gpointer debug_data;			/* Data to pass to debug func */
+	char *pdu_notify;			/* Unsolicited Resp w/ PDU */
+	GSList *response_lines;			/* char * lines of the response */
+	char *wakeup;				/* command sent to wakeup modem */
+	gint timeout_source;
+	gdouble inactivity_time;		/* Period of inactivity */
+	guint wakeup_timeout;			/* How long to wait for resp */
+	GTimer *wakeup_timer;			/* Keep track of elapsed time */
+	GAtSyntax *syntax;
+	gboolean destroyed;			/* Re-entrancy guard */
+	gboolean in_read_handler;		/* Re-entrancy guard */
+	gboolean in_notify;
+	GSList *terminator_list;		/* Non-standard terminator */
+	guint16 terminator_blacklist;		/* Blacklisted terinators */
+};
+
 #ifdef __cplusplus
 }
 #endif
