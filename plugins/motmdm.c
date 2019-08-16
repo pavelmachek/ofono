@@ -1,8 +1,9 @@
-/*
+/* -*- linux-c -*-
  *
  *  oFono - Open Source Telephony
  *
- *  Copyright (C) 2008-2012  Intel Corporation. All rights reserved.
+ *  Copyright (C) 2008-2011  Intel Corporation. All rights reserved.
+ *  Copyright (C) 2019 Pavel Machek <pavel@ucw.cz> 
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -19,6 +20,7 @@
  *
  */
 
+#define DEBUG
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -99,13 +101,20 @@ static void motmdm_debug(const char *str, void *user_data)
 
 static int motmdm_probe(struct ofono_modem *modem)
 {
+	const char *device;
 	struct motmdm_data *data;
+
+	DBG("motmdm: probe\n");
 
 	DBG("%p", modem);
 
-	data = g_try_new0(struct motmdm_data, 1);
-	if (!data)
-		return -ENOMEM;
+	device = ofono_modem_get_string(modem, "Device");
+	if (device == NULL)
+		return -EINVAL;
+
+	DBG("%s", device);
+
+	data = g_new0(struct motmdm_data, 1);
 
 	ofono_modem_set_data(modem, data);
 
@@ -154,6 +163,17 @@ static void shutdown_device(struct ofono_modem *modem)
 	data->dms = NULL;
 
 	qmi_device_shutdown(data->device, shutdown_cb, modem, NULL);
+
+	int i;
+
+	DBG("%p", modem);
+
+	for (i = 0; i < NUM_DLC;  i++) {
+		g_at_chat_unref(data->dlcs[i]);
+		data->dlcs[i] = NULL;
+	}
+
+	data->initialized = 0;
 }
 
 static void power_reset_cb(struct qmi_result *result, void *user_data)
@@ -464,6 +484,170 @@ static void power_disable_cb(struct qmi_result *result, void *user_data)
 	shutdown_device(modem);
 }
 
+static void cstat_notify(GAtResult *result, gpointer user_data)
+{
+	GAtResultIter iter;
+	int enabled, i;
+
+	g_at_result_iter_init(&iter, result);
+
+	if (!g_at_result_iter_next(&iter, "~+RSSI="))
+		return;
+
+	for (i = 0; i < 7; i++) {
+		/* 7 numbers */
+		if (!g_at_result_iter_next_number(&iter, &enabled))
+			return;
+		//DBG("signal changes %d %d\n", i, enabled);
+	}
+}
+
+static void cfun_cb(gboolean ok, GAtResult *result, gpointer user_data)
+{
+	DBG("");
+}
+
+static void scrn_cb(gboolean ok, GAtResult *result, gpointer user_data)
+{
+	DBG("");
+}
+
+static void modem_initialize(struct ofono_modem *modem)
+{
+	GAtSyntax *syntax;
+	GAtChat *chat;
+	const char *device;
+	GIOChannel *io;
+	GHashTable *options;
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+	int i;
+	int fd = 999;
+
+	DBG("");
+
+	device = ofono_modem_get_string(modem, "Device");
+
+	for (i = 0; i < NUM_DLC; i++) {
+		options = g_hash_table_new(g_str_hash, g_str_equal);
+		if (options == NULL)
+			goto error;
+
+		g_hash_table_insert(options, "Baud", "115200");
+		g_hash_table_insert(options, "Parity", "none");
+		g_hash_table_insert(options, "StopBits", "1");
+		g_hash_table_insert(options, "DataBits", "8");
+		g_hash_table_insert(options, "XonXoff", "off");
+		g_hash_table_insert(options, "Local", "off");
+		g_hash_table_insert(options, "RtsCts", "off");
+
+		if (!use_usb) {
+			device = devices[i]; /* Not a tty device */
+			fd = open(device, O_RDWR);
+			io = g_io_channel_unix_new(fd);
+		} else {
+			device = "/dev/ttyUSB4";
+			io = g_at_tty_open(device, options);
+		}
+		DBG("opening %s\n", device);
+
+		g_hash_table_destroy(options);
+
+		if (io == NULL)
+			goto error;
+
+		/* 
+		 */
+		syntax = g_at_syntax_new_gsm_permissive();
+		chat = g_at_chat_new(io, syntax);
+		g_at_syntax_unref(syntax);
+		g_io_channel_unref(io);
+
+		if (chat == NULL)
+			goto error;
+
+		g_at_chat_add_terminator(chat, "+EXT ERROR:", 11, FALSE );
+		g_at_chat_add_terminator(chat,  "+SCRN:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "+CFUN:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "+CLIP:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "+CCWA:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "D:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "H:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "D:ERROR", -1, FALSE  );
+		g_at_chat_add_terminator(chat,  "H:ERROR", -1, FALSE  );
+		g_at_chat_add_terminator(chat,  "+CLCC:", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  ":OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "+FOO:ERROR=9", -1, TRUE  );
+
+		DBG("modem initialized?\n");
+
+		//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
+
+		data->dlcs[i] = chat;
+
+		if (getenv("OFONO_AT_DEBUG")) {
+			DBG("debugging enabled\n");
+			g_at_chat_set_debug(data->dlcs[i], motmdm_debug,
+					    debug_prefixes[i]);
+		}
+		else
+			DBG("debug not enabled\n");
+	}
+
+	return;
+
+error:
+	DBG("error in modem_initalize\n");
+	ofono_modem_set_powered(modem, FALSE);
+}
+
+static void foo_cb(gboolean ok, GAtResult *result, gpointer user_data)
+{
+	struct ofono_modem *modem = user_data;
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+
+	DBG("");
+	if (++data->initialized == NUM_DLC) {
+		DBG("All channels working");
+		ofono_modem_set_powered(modem, TRUE);
+	}
+}
+
+static void modem_verify(struct ofono_modem *modem)
+{
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+	int i;
+
+	for (i=0; i<NUM_DLC; i++) {
+		g_at_chat_send(data->dlcs[i], "AT+FOO\n", none_prefix, foo_cb, modem, NULL);
+	}
+}
+
+/* power up hardware */
+static int motmdm_enable(struct ofono_modem *modem)
+{
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+
+	modem_initialize(modem);
+
+	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! start\n");
+	modem_verify(modem);
+
+	/* AT+SCRN=0 to disable notifications. */
+	/* Test parsing of incoming stuff */
+
+	/* CSTAT tells us when SMS & Phonebook are ready to be used */
+	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
+				FALSE, modem, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0\n", none_prefix, scrn_cb, modem, NULL);
+	if (use_usb)
+		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0\n", NULL, NULL, modem, NULL);	
+	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1\n", none_prefix, cfun_cb, modem, NULL);
+
+	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
+
+	return 0;
+}
+
 static int motmdm_disable(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
@@ -504,6 +688,8 @@ static void set_online_cb(struct qmi_result *result, void *user_data)
 	else
 		CALLBACK_WITH_SUCCESS(cb, cbd->data);
 }
+
+struct ofono_sms *sms_hack;
 
 static void motmdm_set_online(struct ofono_modem *modem, ofono_bool_t online,
 				ofono_modem_online_cb_t cb, void *user_data)
@@ -549,6 +735,21 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 	ofono_voicecall_create(modem, OFONO_VENDOR_MOTMDM, "motorolamodem",
 					data->chat[DLC_VOICE]);
+	ofono_voicecall_create(modem, 0, "motorolamodem", data->dlcs[VOICE_DLC]);
+#if 1
+	{
+		struct motorola_sms_params motorola_sms_params = {
+			.receive_chat = data->dlcs[INSMS_DLC],
+			.send_chat = data->dlcs[OUTSMS_DLC],
+		};
+		DBG("sms create");
+		sms_hack = ofono_sms_create(modem, 0, "motorolamodem", &motorola_sms_params);
+		DBG("sms create done.");		
+		ofono_sms_register(sms_hack);
+		DBG("sms registered.");
+	}
+#endif
+	ofono_sim_inserted_notify(data->sim, TRUE);
 }
 
 static void motmdm_post_sim(struct ofono_modem *modem)
@@ -615,6 +816,7 @@ static struct ofono_modem_driver motmdm_driver = {
 
 static int motmdm_init(void)
 {
+	DBG("motmdm init\n");
 	return ofono_modem_driver_register(&motmdm_driver);
 }
 
@@ -623,5 +825,6 @@ static void motmdm_exit(void)
 	ofono_modem_driver_unregister(&motmdm_driver);
 }
 
-OFONO_PLUGIN_DEFINE(motmdm, "Qualcomm Gobi modem driver", VERSION,
-	OFONO_PLUGIN_PRIORITY_DEFAULT, motmdm_init, motmdm_exit)
+OFONO_PLUGIN_DEFINE(motmdm, "Motorola modem driver", VERSION,
+			OFONO_PLUGIN_PRIORITY_DEFAULT,
+			motmdm_init, motmdm_exit)

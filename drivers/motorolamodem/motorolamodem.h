@@ -55,4 +55,11 @@ struct motorola_netreg_params {
 struct motorola_netmon_params {
 	struct ofono_modem *modem;
 	GAtChat *recv;
-};
+
+#include <drivers/atmodem/atutil.h>
+
+extern void motorola_voicecall_init(void);
+extern void motorola_voicecall_exit(void);
+
+extern void motorola_sms_init(void);
+extern void motorola_sms_exit(void);

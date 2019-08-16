@@ -1451,6 +1451,7 @@ static struct {
 	{ "n900",	setup_isi_serial	},
 	{ "calypso",	setup_serial_modem	},
 	{ "cinterion",	setup_serial_modem	},
+	{ "motmdm",     setup_serial_modem	},
 	{ "nokiacdma",	setup_serial_modem	},
 	{ "sim900",	setup_serial_modem	},
 	{ "wavecom",	setup_wavecom		},
@@ -1631,6 +1632,9 @@ static void add_serial_device(struct udev_device *dev)
 	devpath = udev_device_get_devpath(mdev);
 
 	devnode = udev_device_get_devnode(dev);
+
+	DBG("syspath %s, devpath %s, devname %s, devnode %s\n",
+	    syspath, devpath, devname, devnode);
 
 	if (!syspath || !devpath)
 		return;
@@ -2075,6 +2079,7 @@ static void enumerate_devices(struct udev *context)
 	udev_enumerate_add_match_subsystem(enumerate, "net");
 	udev_enumerate_add_match_subsystem(enumerate, "hsi");
 	udev_enumerate_add_match_subsystem(enumerate, "pci");
+	udev_enumerate_add_match_subsystem(enumerate, "motmdm");
 
 	udev_enumerate_scan_devices(enumerate);
 

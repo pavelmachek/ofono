@@ -1,4 +1,4 @@
-/*
+/* -*- linux-c -*-
  *
  *  oFono - Open Source Telephony
  *
@@ -259,7 +259,7 @@ static void motorola_dial(struct ofono_voicecall *vc,
 		break;
 	}
 
-	if (mot_at_chat_send(vd->chat, buf, atd_prefix,
+	if (g_at_chat_send(vd->chat, buf, atd_prefix,
 				atd_cb, cbd, g_free) > 0)
 		return;
 
@@ -283,7 +283,7 @@ static void motorola_template(const char *cmd, struct ofono_voicecall *vc,
 	req->data = data;
 	req->affected_types = affected_types;
 
-	if (mot_at_chat_send(vd->chat, cmd, none_prefix,
+	if (g_at_chat_send(vd->chat, cmd, none_prefix,
 				result_cb, req, g_free) > 0)
 		return;
 
@@ -302,6 +302,8 @@ static void motorola_answer(struct ofono_voicecall *vc,
 static void motorola_hangup(struct ofono_voicecall *vc,
 			ofono_voicecall_cb_t cb, void *data)
 {
+	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
+
 	motorola_template("ATH", vc, generic_cb, 0x3f, cb, data);
 }
 
@@ -351,7 +353,7 @@ static void motorola_release_specific(struct ofono_voicecall *vc, int id,
 
 	snprintf(buf, sizeof(buf), "AT+CHLD=1%d", id);
 
-	if (mot_at_chat_send(vd->chat, buf, none_prefix,
+	if (g_at_chat_send(vd->chat, buf, none_prefix,
 				release_id_cb, req, g_free) > 0)
 		return;
 
@@ -460,7 +462,7 @@ static void motorola_send_dtmf(struct ofono_voicecall *vc, const char *dtmf,
 
 	vd->vts_delay = vd->tone_duration * len;
 
-	s = mot_at_chat_send(vd->chat, buf, none_prefix,
+	s = g_at_chat_send(vd->chat, buf, none_prefix,
 				vts_cb, cbd, NULL);
 
 	g_free(buf);
@@ -567,6 +569,8 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 	GSList *l;
 	struct ofono_call *call;
 
+	printf("got clip, searching for incoming calls\n");
+
 	l = g_slist_find_custom(vd->calls,
 				GINT_TO_POINTER(CALL_STATUS_INCOMING),
 				at_util_call_compare_by_status);
@@ -581,7 +585,10 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 
 	g_at_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "~+CLIP="))
+	printf("Got clip...\n");
+
+	if (/* !g_at_result_iter_next(&iter, "+CLIP:") && */
+	    !g_at_result_iter_next(&iter, "~+CLIP="))
 		return;
 
 	if (!g_at_result_iter_next_string(&iter, &num))
@@ -833,7 +840,7 @@ out:
 
 static void ciev_notify(GAtResult *result, gpointer user_data)
 {
-	struct ofono_voicecall *vc = user_data;
+  	struct ofono_voicecall *vc = user_data;
 	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
 	int strength, ind;
 	GAtResultIter iter;
@@ -842,6 +849,7 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 
 	g_at_result_iter_init(&iter, result);
 
+	printf("Got ciev...\n");
 	if (!g_at_result_iter_next(&iter, "~+CIEV="))
 		return;
 
@@ -854,10 +862,14 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 	if (!g_at_result_iter_next_number(&iter, &strength))
 		return;
 
+	printf("Got ciev 1,%d...: \n", strength);
+
 	switch (strength) {
 	case 7: /* outgoing call starts */
+		printf("Outgoing notification, but ATD should have created it for us\n");
 		break;
 	case 4: /* call incoming ringing */
+		printf("Call ringing\n");
 		call = create_call(vc, 9, 1, CALL_STATUS_INCOMING, NULL, 128, 2);
 		if (call == NULL) {
 			ofono_error("Couldn't create call, call management is fubar!");
@@ -865,14 +877,18 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 		}
 		call->type = 0;
 		vd->flags = FLAG_NEED_CLIP;
+		/* FIXME: we should really do that at +CLIP callback .. when that works */
+		//ofono_voicecall_notify(vc, call);
 		break;
 	case 0: /* call ends */
 		call = vd->calls->data;
-
+	  
 		reason = OFONO_DISCONNECT_REASON_REMOTE_HANGUP;
 		if (!call->type)
 			ofono_voicecall_disconnected(vc, call->id, reason, NULL);
-	}
+
+		printf("Call ends\n"); break;
+	}	   
 }
 
 
@@ -916,9 +932,9 @@ static int motorola_voicecall_probe(struct ofono_voicecall *vc, unsigned int ven
 
 	ofono_voicecall_set_data(vc, vd);
 
-	mot_at_chat_send(vd->chat, "AT+CLIP=1", NULL, NULL, NULL, NULL);
+	g_at_chat_send(vd->chat, "AT+CLIP=1", NULL, NULL, NULL, NULL);
 
-	mot_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
+	g_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
 				motorola_voicecall_initialized, vc, NULL);
 
 	return 0;
