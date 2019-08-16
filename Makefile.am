@@ -510,6 +510,12 @@ builtin_sources += drivers/cdmamodem/cdmamodem.h \
 			drivers/cdmamodem/connman.c
 endif
 
+builtin_modules += motorolamodem
+builtin_sources += drivers/motorolamodem/motorolamodem.c \
+			drivers/motorolamodem/motorolamodem.h \
+			drivers/motorolamodem/voicecall.c
+
+
 builtin_modules += g1
 builtin_sources += plugins/g1.c
 
@@ -518,6 +524,9 @@ builtin_sources += plugins/wavecom.c
 
 builtin_modules += calypso
 builtin_sources += plugins/calypso.c
+
+builtin_modules += motmdm
+builtin_sources += plugins/motmdm.c
 
 builtin_modules += mbm
 builtin_sources += plugins/mbm.c
