@@ -80,9 +80,6 @@ struct motmdm_data {
 
 const int use_usb = 0;
 
-//static const char *cpin_prefix[] = { "+CPIN:", NULL };
-//static const char *cfun_prefix[] = { "+CFUN:", NULL };
-//static const char *scrn_prefix[] = { "+SCRN:", NULL };
 static const char *none_prefix[] = { NULL };
 
 static void motmdm_debug(const char *str, void *user_data)
@@ -125,12 +122,8 @@ static void motmdm_remove(struct ofono_modem *modem)
 
 static void cstat_notify(GAtResult *result, gpointer user_data)
 {
-	//struct ofono_modem *modem = user_data;
-	//struct motmdm_data *data = ofono_modem_get_data(modem);
 	GAtResultIter iter;
 	int enabled, i;
-
-	//DBG("signal changes\n");
 
 	g_at_result_iter_init(&iter, result);
 
@@ -138,26 +131,20 @@ static void cstat_notify(GAtResult *result, gpointer user_data)
 		return;
 
 	for (i = 0; i < 7; i++) {
-	/* 7 numbers */
-	  if (!g_at_result_iter_next_number(&iter, &enabled))
-	    return;
-	  //DBG("signal changes %d %d\n", i, enabled);
+		/* 7 numbers */
+		if (!g_at_result_iter_next_number(&iter, &enabled))
+			return;
+		//DBG("signal changes %d %d\n", i, enabled);
 	}
 }
 
 static void cfun_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
-	//struct ofono_modem *modem = user_data;
-	//struct motmdm_data *data = ofono_modem_get_data(modem);
-
 	DBG("");
 }
 
 static void scrn_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
-	//struct ofono_modem *modem = user_data;
-	//struct motmdm_data *data = ofono_modem_get_data(modem);
-
 	DBG("");
 }
 
@@ -177,60 +164,59 @@ static void modem_initialize(struct ofono_modem *modem)
 	device = ofono_modem_get_string(modem, "Device");
 
 	for (i = 0; i < NUM_DLC; i++) {
+		options = g_hash_table_new(g_str_hash, g_str_equal);
+		if (options == NULL)
+			goto error;
 
-	options = g_hash_table_new(g_str_hash, g_str_equal);
-	if (options == NULL)
-		goto error;
+		g_hash_table_insert(options, "Baud", "115200");
+		g_hash_table_insert(options, "Parity", "none");
+		g_hash_table_insert(options, "StopBits", "1");
+		g_hash_table_insert(options, "DataBits", "8");
+		g_hash_table_insert(options, "XonXoff", "off");
+		g_hash_table_insert(options, "Local", "off");
+		g_hash_table_insert(options, "RtsCts", "off");
 
-	g_hash_table_insert(options, "Baud", "115200");
-	g_hash_table_insert(options, "Parity", "none");
-	g_hash_table_insert(options, "StopBits", "1");
-	g_hash_table_insert(options, "DataBits", "8");
-	g_hash_table_insert(options, "XonXoff", "off");
-	g_hash_table_insert(options, "Local", "off");
-	g_hash_table_insert(options, "RtsCts", "off");
+		if (!use_usb) {
+			device = devices[i]; /* Not a tty device */
+			fd = open(device, O_RDWR);
+			io = g_io_channel_unix_new(fd);
+		} else {
+			device = "/dev/ttyUSB4";
+			io = g_at_tty_open(device, options);
+		}
+		DBG("opening %s\n", device);
 
-	if (!use_usb) {
-		device = devices[i]; /* Not a tty device */
-		fd = open(device, O_RDWR);
-		io = g_io_channel_unix_new(fd);
- 	} else {
-		device = "/dev/ttyUSB4";
-		io = g_at_tty_open(device, options);
-	}
-	DBG("opening %s\n", device);
+		g_hash_table_destroy(options);
 
-	g_hash_table_destroy(options);
+		if (io == NULL)
+			goto error;
 
-	if (io == NULL)
-		goto error;
+		/* 
+		 */
+		syntax = g_at_syntax_new_gsm_permissive();
+		chat = g_at_chat_new(io, syntax);
+		g_at_syntax_unref(syntax);
+		g_io_channel_unref(io);
 
-	/* 
-	 */
-	syntax = g_at_syntax_new_gsm_permissive();
-	chat = g_at_chat_new(io, syntax);
-	g_at_syntax_unref(syntax);
-	g_io_channel_unref(io);
+		if (chat == NULL)
+			goto error;
 
-	if (chat == NULL)
-		goto error;
+		g_at_chat_add_terminator(chat, "+EXT ERROR:", 11, FALSE );
+		g_at_chat_add_terminator(chat,  "+SCRN:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "+CFUN:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "+CLIP:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "+CCWA:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "D:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "H:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "D:ERROR", -1, FALSE  );
+		g_at_chat_add_terminator(chat,  "H:ERROR", -1, FALSE  );
+		g_at_chat_add_terminator(chat,  "+CLCC:", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  ":OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "+FOO:ERROR=9", -1, TRUE  );
 
-	g_at_chat_add_terminator(chat, "+EXT ERROR:", 11, FALSE );
-	g_at_chat_add_terminator(chat,  "+SCRN:OK", -1, TRUE  );
-	g_at_chat_add_terminator(chat,  "+CFUN:OK", -1, TRUE  );
-	g_at_chat_add_terminator(chat,  "+CLIP:OK", -1, TRUE  );
-	g_at_chat_add_terminator(chat,  "+CCWA:OK", -1, TRUE  );
-	g_at_chat_add_terminator(chat,  "D:OK", -1, TRUE  );
-	g_at_chat_add_terminator(chat,  "H:OK", -1, TRUE  );
-	g_at_chat_add_terminator(chat,  "D:ERROR", -1, FALSE  );
-	g_at_chat_add_terminator(chat,  "H:ERROR", -1, FALSE  );
-	g_at_chat_add_terminator(chat,  "+CLCC:", -1, TRUE  );
-	g_at_chat_add_terminator(chat,  ":OK", -1, TRUE  );
-	g_at_chat_add_terminator(chat,  "+FOO:ERROR=9", -1, TRUE  );
+		DBG("modem initialized?\n");
 
-	DBG("modem initialized?\n");
-
-	//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
+		//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
 
 		data->dlcs[i] = chat;
 
@@ -293,20 +279,8 @@ static int motmdm_enable(struct ofono_modem *modem)
 		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0\n", NULL, NULL, modem, NULL);	
 	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1\n", none_prefix, cfun_cb, modem, NULL);
 
-#if 0
-	
-	/* Expect :ERROR=8 */
-	g_at_chat_send(data->dlcs[INSMS_DLC], "AT\n", none_prefix, NULL, modem, NULL);
-#endif
-
-
-	//write(fd, "AT+SCRN=0\r\n", 11);
-	//g_at_io_write(data->dlcs[VOICE_DLC]->io, "AT+SCRN=0\r\n", 11);
-
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
 
-	//g_at_chat_send(chat, "AT", NULL, NULL, NULL, NULL);
-	//DBG("AT sent?\n");
 	return 0;
 }
 
@@ -316,10 +290,6 @@ static int motmdm_disable(struct ofono_modem *modem)
 	int i;
 
 	DBG("%p", modem);
-
-	/* FIXME
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=0", none_prefix, cfun_cb, modem, NULL);
-	*/
 
 	for (i = 0; i < NUM_DLC;  i++) {
 		g_at_chat_unref(data->dlcs[i]);
@@ -341,7 +311,6 @@ static void motmdm_set_online(struct ofono_modem *modem, ofono_bool_t online,
 
 	DBG("modem %p %s", modem, online ? "online" : "offline");
 
-	//ofono_sms_register(sms_hack);
 	CALLBACK_WITH_SUCCESS(cb, cbd->data);
 
 	g_free(cbd);
@@ -355,7 +324,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 	data->sim = ofono_sim_create(modem, 0, "nonexistingfoomodem", data->dlcs[VOICE_DLC]);
 	ofono_voicecall_create(modem, 0, "motorolamodem", data->dlcs[VOICE_DLC]);
-#if 0
+#if 1
 	{
 		struct motorola_sms_params motorola_sms_params = {
 			.receive_chat = data->dlcs[INSMS_DLC],
@@ -402,7 +371,6 @@ static struct ofono_modem_driver motmdm_driver = {
 	.remove		= motmdm_remove,
 	.enable		= motmdm_enable,
 	.disable	= motmdm_disable,
-	//	.set_online	= motmdm_set_online,
 	.pre_sim	= motmdm_pre_sim,
 	.post_sim	= motmdm_post_sim,
 };
