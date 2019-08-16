@@ -24,6 +24,7 @@
 #endif
 
 #include <glib.h>
+#include <motchat.h>
 #include <gatchat.h>
 
 #define OFONO_API_SUBJECT_TO_CHANGE
@@ -36,12 +37,14 @@ static int motorolamodem_init(void)
 {
 	motorola_voicecall_init();
 	motorola_sms_init();
+	motorola_netreg_init();
 
 	return 0;
 }
 
 static void motorolamodem_exit(void)
 {
+	motorola_netreg_exit();
 	motorola_sms_exit();
 	motorola_voicecall_exit();
 }

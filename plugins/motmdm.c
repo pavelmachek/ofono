@@ -36,6 +36,7 @@
 
 #include <glib.h>
 #include <gatchat.h>
+#include <motchat.h>
 #include <gattty.h>
 #include <gatmux.h>
 
@@ -61,6 +62,7 @@
 #include "gatio.h"
 #include "gatchat.h"
 
+#include <drivers/atmodem/vendor.h>
 #include <drivers/motorolamodem/motorolamodem.h>
 
 #define NUM_DLC 3
@@ -70,15 +72,13 @@
 #define OUTSMS_DLC  2
 
 static char *debug_prefixes[NUM_DLC] = { "Voice: ", "InSMS: ", "OutSMS: " };
-static char *devices[NUM_DLC] = { "/dev/motmdm1", "/dev/motmdm9", "/dev/motmdm3" };
+static char *devices[NUM_DLC] = { "/dev/gsmtty1", "/dev/gsmtty9", "/dev/gsmtty3" };
 
 struct motmdm_data {
-	GAtChat *dlcs[NUM_DLC];
+	GMotChat *dlcs[NUM_DLC];
 	struct ofono_sim *sim;
 	int initialized;
 };
-
-const int use_usb = 0;
 
 static const char *none_prefix[] = { NULL };
 
@@ -150,14 +150,12 @@ static void scrn_cb(gboolean ok, GAtResult *result, gpointer user_data)
 
 static void modem_initialize(struct ofono_modem *modem)
 {
-	GAtSyntax *syntax;
-	GAtChat *chat;
+	GMotChat *chat;
 	const char *device;
 	GIOChannel *io;
 	GHashTable *options;
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i;
-	int fd = 999;
 
 	DBG("");
 
@@ -176,14 +174,9 @@ static void modem_initialize(struct ofono_modem *modem)
 		g_hash_table_insert(options, "Local", "off");
 		g_hash_table_insert(options, "RtsCts", "off");
 
-		if (!use_usb) {
-			device = devices[i]; /* Not a tty device */
-			fd = open(device, O_RDWR);
-			io = g_io_channel_unix_new(fd);
-		} else {
-			device = "/dev/ttyUSB4";
-			io = g_at_tty_open(device, options);
-		}
+		device = devices[i]; /* Not a tty device */
+		io = g_at_tty_open(device, options);
+
 		DBG("opening %s\n", device);
 
 		g_hash_table_destroy(options);
@@ -193,36 +186,38 @@ static void modem_initialize(struct ofono_modem *modem)
 
 		/* 
 		 */
-		syntax = g_at_syntax_new_gsm_permissive();
-		chat = g_at_chat_new(io, syntax);
-		g_at_syntax_unref(syntax);
+		chat = g_mot_chat_new(io);
 		g_io_channel_unref(io);
 
 		if (chat == NULL)
 			goto error;
 
-		g_at_chat_add_terminator(chat, "+EXT ERROR:", 11, FALSE );
-		g_at_chat_add_terminator(chat,  "+SCRN:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "+CFUN:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "+CLIP:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "+CCWA:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "D:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "H:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "D:ERROR", -1, FALSE  );
-		g_at_chat_add_terminator(chat,  "H:ERROR", -1, FALSE  );
-		g_at_chat_add_terminator(chat,  "+CLCC:", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  ":OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "+FOO:ERROR=9", -1, TRUE  );
+#if 0
+		g_mot_chat_add_terminator(chat, "U0000+EXT ERROR:", 11, FALSE );
+		g_mot_chat_add_terminator(chat, "U0000+SCRN:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+CFUN:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+CLIP:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+CCWA:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000D:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000H:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000D:ERROR", -1, FALSE  );
+		g_mot_chat_add_terminator(chat, "U0000H:ERROR", -1, FALSE  );
+		g_mot_chat_add_terminator(chat, "U0000+CLCC:", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+FOO:ERROR=9", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+CREG:ERROR", -1, FALSE  );
+//		g_mot_chat_add_terminator(chat, "U0000+CREG=", 6, TRUE  );
+#endif
 
 		DBG("modem initialized?\n");
 
-		//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
+		//g_mot_chat_set_wakeup_command(chat, "U0000AT\n\r", 500, 5000);
 
 		data->dlcs[i] = chat;
 
 		if (getenv("OFONO_AT_DEBUG")) {
 			DBG("debugging enabled\n");
-			g_at_chat_set_debug(data->dlcs[i], motmdm_debug,
+			g_mot_chat_set_debug(data->dlcs[i], motmdm_debug,
 					    debug_prefixes[i]);
 		}
 		else
@@ -254,7 +249,7 @@ static void modem_verify(struct ofono_modem *modem)
 	int i;
 
 	for (i=0; i<NUM_DLC; i++) {
-		g_at_chat_send(data->dlcs[i], "AT+FOO\n", none_prefix, foo_cb, modem, NULL);
+		g_mot_chat_send(data->dlcs[i], "U0000AT+FOO", none_prefix, foo_cb, modem, NULL);
 	}
 }
 
@@ -267,17 +262,28 @@ static int motmdm_enable(struct ofono_modem *modem)
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! start\n");
 	modem_verify(modem);
+	DBG("modem verified\n");
 
-	/* AT+SCRN=0 to disable notifications. */
 	/* Test parsing of incoming stuff */
 
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
-	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
+	/* FIXME: This is great hack! Maybe no longer suitable? */
+	g_mot_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0\n", none_prefix, scrn_cb, modem, NULL);
-	if (use_usb)
-		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0\n", NULL, NULL, modem, NULL);	
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1\n", none_prefix, cfun_cb, modem, NULL);
+
+	DBG("sending scrn\n");
+
+	/* AT+SCRN=0 to disable notifications.
+	   Controls notifications such as:
+	   U0005~+CREG=1,11,04CC,0E117D42,0,0,0,0,0,0
+	   U0006~+RSSI=0,25,99,99,0,0,0
+	*/	
+	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
+	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=1", none_prefix, scrn_cb, modem, NULL);
+	if (0)
+		g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000ATE0", NULL, NULL, modem, NULL);
+	DBG("sending cfun\n");
+	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
 
@@ -289,20 +295,24 @@ static int motmdm_disable(struct ofono_modem *modem)
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i;
 
+	/* FIXME: we should probably turn the modem off */
+
 	DBG("%p", modem);
+	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+CFUN=0", none_prefix, cfun_cb, modem, NULL);
 
 	for (i = 0; i < NUM_DLC;  i++) {
-		g_at_chat_unref(data->dlcs[i]);
+		g_mot_chat_unref(data->dlcs[i]);
 		data->dlcs[i] = NULL;
 	}
 
 	data->initialized = 0;
 
-	return -EINVAL;
+	return 0;
 }
 
 struct ofono_sms *sms_hack;
 
+#if 0
 static void motmdm_set_online(struct ofono_modem *modem, ofono_bool_t online,
 				ofono_modem_online_cb_t cb, void *user_data)
 {
@@ -315,6 +325,7 @@ static void motmdm_set_online(struct ofono_modem *modem, ofono_bool_t online,
 
 	g_free(cbd);
 }
+#endif
 
 static void motmdm_pre_sim(struct ofono_modem *modem)
 {
@@ -337,6 +348,8 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 		DBG("sms registered.");
 	}
 #endif
+	
+	ofono_netreg_create(modem, OFONO_VENDOR_GENERIC, "motorolamodem", data->dlcs[VOICE_DLC]);
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
 
@@ -350,8 +363,8 @@ static void motmdm_post_sim(struct ofono_modem *modem)
 	ofono_ussd_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_forwarding_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_settings_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
-	ofono_netreg_create(modem, OFONO_VENDOR_CALYPSO, "atmodem",
-				data->dlcs[NETREG_DLC]);
+#endif
+#if 0
 	ofono_call_meter_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_barring_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_volume_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);

@@ -39,6 +39,15 @@ void g_at_result_iter_init(GAtResultIter *iter, GAtResult *result)
 	iter->line_pos = 0;
 }
 
+void g_at_result_iter_init_from_final(GAtResultIter *iter, GAtResult *result)
+{
+	iter->result = result;
+	iter->pre.next = g_slist_prepend(NULL, result->final_or_pdu);
+	iter->pre.data = NULL;
+	iter->l = &iter->pre;
+	iter->line_pos = 0;
+}
+
 gboolean g_at_result_iter_next(GAtResultIter *iter, const char *prefix)
 {
 	char *line;
