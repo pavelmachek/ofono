@@ -47,7 +47,7 @@
 #define SETTINGS_STORE "sms"
 #define SETTINGS_GROUP "Settings"
 
-#define TXQ_MAX_RETRIES 4
+#define TXQ_MAX_RETRIES 0
 #define NETWORK_TIMEOUT 332
 
 static gboolean tx_next(gpointer user_data);
@@ -1315,12 +1315,14 @@ static void dispatch_text_message(struct ofono_sms *sms,
 	if (cls == SMS_CLASS_0)
 		return;
 
+	if (sms->text_handlers) {
 	for (l = sms->text_handlers->items; l; l = l->next) {
 		h = l->data;
 		notify = h->item.notify;
 
 		notify(str, &remote, &local, message, h->item.notify_data);
 	}
+	} else DBG("No text handlers, noone to notify about incoming SMS");
 
 	__ofono_history_sms_received(modem, uuid, str, &remote, &local,
 					message);
@@ -2117,16 +2119,21 @@ int __ofono_sms_txq_submit(struct ofono_sms *sms, GSList *list,
 			sms->ref = sms->ref + 1;
 	}
 
+	DBG();	
+
 	entry->id = sms->tx_counter++;
 
 	g_queue_push_tail(sms->txq, entry);
 
+	/* A bit of a hack */
+	sms->registered = TRUE;
 	if (sms->registered && g_queue_get_length(sms->txq) == 1)
 		sms->tx_source = g_timeout_add(0, tx_next, sms);
 
 	if (uuid)
 		memcpy(uuid, &entry->uuid, sizeof(*uuid));
 
+	DBG("Added timeout");	
 	if (flags & OFONO_SMS_SUBMIT_FLAG_EXPOSE_DBUS) {
 		const char *uuid_str;
 		unsigned char i;
