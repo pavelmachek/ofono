@@ -61,6 +61,7 @@
 #include "gatio.h"
 #include "gatchat.h"
 
+#include <drivers/atmodem/vendor.h>
 #include <drivers/motorolamodem/motorolamodem.h>
 
 #define NUM_DLC 3
@@ -213,6 +214,7 @@ static void modem_initialize(struct ofono_modem *modem)
 		g_at_chat_add_terminator(chat,  "+CLCC:", -1, TRUE  );
 		g_at_chat_add_terminator(chat,  ":OK", -1, TRUE  );
 		g_at_chat_add_terminator(chat,  "+FOO:ERROR=9", -1, TRUE  );
+		g_at_chat_add_terminator(chat,  "+CREG:ERROR", -1, FALSE  );
 
 		DBG("modem initialized?\n");
 
@@ -337,21 +339,24 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 		DBG("sms registered.");
 	}
 #endif
+	
+	ofono_netreg_create(modem, OFONO_VENDOR_GENERIC, "atmodem", data->dlcs[VOICE_DLC]);
+
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
 
 static void motmdm_post_sim(struct ofono_modem *modem)
 {
-#if 0
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 
 	DBG("%p", modem);
 
+#if 0
 	ofono_ussd_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_forwarding_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_settings_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
-	ofono_netreg_create(modem, OFONO_VENDOR_CALYPSO, "atmodem",
-				data->dlcs[NETREG_DLC]);
+#endif
+#if 0
 	ofono_call_meter_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_barring_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_volume_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);

@@ -20,6 +20,8 @@
  *
  */
 
+#define DEBUG
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -2067,8 +2069,18 @@ static void at_creg_test_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	int creg1 = 0;
 	int creg2 = 0;
 
-	if (!ok)
+	DBG("");
+
+	if (!ok) {
+	  printf("motmdm -- failure is expected\n");
+	  DBG("motmdm -- failure is expected");
+	g_at_chat_register(nd->chat, "+CREG:",
+				creg_notify, FALSE, netreg, NULL);
+	ofono_netreg_register(netreg);
+	return;
+	  
 		goto error;
+	}
 
 	g_at_result_iter_init(&iter, result);
 
@@ -2111,7 +2123,9 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 	GAtChat *chat = data;
 	struct at_netreg_data *nd;
 
-	nd = g_new0(struct at_netreg_data, 1);
+	DBG("");
+
+	nd = g_new0(struct netreg_data, 1);
 
 	nd->chat = g_at_chat_clone(chat);
 	nd->vendor = vendor;
@@ -2125,6 +2139,9 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 	nd->time.dst = 0;
 	nd->time.utcoff = 0;
 	ofono_netreg_set_data(netreg, nd);
+
+	DBG("Probing creg");
+	printf("Probing creg\n");
 
 	g_at_chat_send(nd->chat, "AT+CREG=?", creg_prefix,
 			at_creg_test_cb, netreg, NULL);
