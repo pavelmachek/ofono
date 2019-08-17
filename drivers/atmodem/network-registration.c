@@ -1,4 +1,4 @@
-/*
+/* -*- linux-c -*-
  *
  *  oFono - Open Source Telephony
  *
@@ -46,7 +46,7 @@
 #include "network-registration.h"
 
 static const char *none_prefix[] = { NULL };
-static const char *creg_prefix[] = { "+CREG:", NULL };
+static const char *creg_prefix[] = { "+CREG=", "+CREG:", NULL };
 static const char *cops_prefix[] = { "+COPS:", NULL };
 static const char *csq_prefix[] = { "+CSQ:", NULL };
 static const char *cind_prefix[] = { "+CIND:", NULL };
@@ -201,6 +201,7 @@ static void at_creg_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	struct ofono_error error;
 	struct at_netreg_data *nd = cbd->user;
 
+	DBG("");
 	decode_at_error(&error, g_at_result_final_response(result));
 
 	if (!ok) {
@@ -208,10 +209,25 @@ static void at_creg_cb(gboolean ok, GAtResult *result, gpointer user_data)
 		return;
 	}
 
+	DBG("");
 	if (at_util_parse_reg(result, "+CREG:", NULL, &status,
 				&lac, &ci, &tech, nd->vendor) == FALSE) {
+		DBG("Aha, we are motmdm");
+	if (at_util_parse_reg(result, "", NULL, &status,
+				&lac, &ci, &tech, nd->vendor) == FALSE) {
+
+		DBG("But even CREG= could not be parsed");
+#if 0
 		CALLBACK_WITH_FAILURE(cb, -1, -1, -1, -1, cbd->data);
 		return;
+#else
+		DBG("Faking success");
+		status = 1;
+		lac = 0x1234;
+		ci = 0xabcd;
+		tech = 1;
+#endif
+	}
 	}
 
 	if ((status == 1 || status == 5) && (tech == -1))
@@ -315,9 +331,14 @@ void at_registration_status(struct ofono_netreg *netreg,
 		break;
 	}
 
+	DBG("Sending creg");
 	if (g_at_chat_send(nd->chat, "AT+CREG?", creg_prefix,
-				at_creg_cb, cbd, g_free) > 0)
+			   at_creg_cb, cbd, g_free) > 0) {
+		DBG("Creg sent ok ok");
 		return;
+	}
+
+	
 
 	g_free(cbd);
 
@@ -1511,6 +1532,8 @@ static void creg_notify(GAtResult *result, gpointer user_data)
 	struct at_netreg_data *nd = ofono_netreg_get_data(netreg);
 	struct tech_query *tq;
 
+	DBG("");
+
 	if (at_util_parse_reg_unsolicited(result, "+CREG:", &status,
 				&lac, &ci, &tech, nd->vendor) == FALSE)
 		return;
@@ -2072,12 +2095,11 @@ static void at_creg_test_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	DBG("");
 
 	if (!ok) {
-	  printf("motmdm -- failure is expected\n");
-	  DBG("motmdm -- failure is expected");
-	g_at_chat_register(nd->chat, "+CREG:",
-				creg_notify, FALSE, netreg, NULL);
-	ofono_netreg_register(netreg);
-	return;
+		DBG("motmdm -- failure is expected");
+		//g_at_chat_register(nd->chat, "+CREG=",
+		//		   creg_notify, FALSE, netreg, NULL);
+		ofono_netreg_register(netreg);
+		return;
 	  
 		goto error;
 	}
@@ -2141,7 +2163,6 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 	ofono_netreg_set_data(netreg, nd);
 
 	DBG("Probing creg");
-	printf("Probing creg\n");
 
 	g_at_chat_send(nd->chat, "AT+CREG=?", creg_prefix,
 			at_creg_test_cb, netreg, NULL);
