@@ -59,6 +59,7 @@
 #include <drivers/qmimodem/dms.h>
 #include <drivers/qmimodem/wda.h>
 #include <drivers/qmimodem/util.h>
+#include <drivers/motorolamodem/motorolamodem.h>
 
 enum motmdm_chat {
 	DLC_VOICE,
@@ -79,6 +80,7 @@ static const char *devices[] = {
 struct motmdm_data {
 	struct qmi_device *device;
 	struct qmi_service *dms;
+	struct motorola_sms_params mot_sms;
 	GAtChat *chat[NUM_CHAT];
 	unsigned long features;
 	unsigned int discover_attempts;
@@ -340,6 +342,11 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 			g_at_chat_add_terminator(*chat, "ERROR=", 6, FALSE);
 			g_at_chat_add_terminator(*chat, "+CLCC:", -1, TRUE);
 			break;
+		case DLC_SMS_RECV:
+			g_at_chat_add_hdrlen(*chat, 5);
+			g_at_chat_add_terminator(*chat, "+GCNMA=OK", 9, TRUE);
+			g_at_chat_add_terminator(*chat, "+GCNMA=305", 10, FALSE);
+			break;
 		default:
 			break;
 		}
@@ -490,12 +497,19 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 static void motmdm_post_sim(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
+	struct motorola_sms_params *mot_sms = &data->mot_sms;
 	struct ofono_message_waiting *mw;
 
 	DBG("%p", modem);
 
 	ofono_phonebook_create(modem, 0, "qmimodem", data->device);
 	ofono_radio_settings_create(modem, 0, "qmimodem", data->device);
+
+	/* Use qmimodem for sending and motorolamodem for receiving */
+	mot_sms->recv = data->chat[DLC_SMS_RECV];
+	mot_sms->xmit = data->chat[DLC_SMS_XMIT];
+	mot_sms->qmi_sms = ofono_sms_create(modem, 0, "qmimodem", data->device);
+	ofono_sms_create(modem, 0, "motorolamodem", mot_sms);
 
 	mw = ofono_message_waiting_create(modem);
 	if (mw)

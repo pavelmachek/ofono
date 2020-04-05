@@ -519,7 +519,8 @@ if MOTOROLAMODEM
 builtin_modules += motorolamodem
 builtin_sources += drivers/motorolamodem/motorolamodem.c \
 			drivers/motorolamodem/motorolamodem.h \
-			drivers/motorolamodem/voicecall.c
+			drivers/motorolamodem/voicecall.c \
+			drivers/motorolamodem/sms.c
 endif
 
 builtin_modules += g1

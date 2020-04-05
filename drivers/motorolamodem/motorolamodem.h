@@ -25,3 +25,14 @@ extern void motorola_voicecall_exit(void);
 extern guint mot_at_chat_send(GAtChat *chat, const char *cmd,
 				const char **valid_resp, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify);
+
+extern void motorola_sms_init(void);
+extern void motorola_sms_exit(void);
+
+struct ofono_sms;
+
+struct motorola_sms_params {
+	struct ofono_sms *qmi_sms;
+	GAtChat *recv;
+	GAtChat *xmit;
+};
