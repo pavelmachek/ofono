@@ -173,6 +173,7 @@ void g_at_chat_add_terminator(GAtChat *chat, char *terminator,
 				int len, gboolean success);
 void g_at_chat_blacklist_terminator(GAtChat *chat,
 						GAtChatTerminator terminator);
+void g_at_chat_add_delimiter(GAtChat *chat, char *delimiter);
 
 #ifdef __cplusplus
 }

@@ -102,6 +102,7 @@ struct at_chat {
 	gboolean in_read_handler;		/* Re-entrancy guard */
 	gboolean in_notify;
 	GSList *terminator_list;		/* Non-standard terminator */
+	char *delimiter;			/* Non-standard delimiter */
 	guint16 terminator_blacklist;		/* Blacklisted terinators */
 };
 
@@ -360,6 +361,11 @@ static void chat_cleanup(struct at_chat *chat)
 		g_slist_free_full(chat->terminator_list, free_terminator);
 		chat->terminator_list = NULL;
 	}
+
+	if (chat->delimiter) {
+		g_free(chat->delimiter);
+		chat->delimiter = NULL;
+	}
 }
 
 static void io_disconnect(gpointer user_data)
@@ -494,12 +500,28 @@ static void at_chat_blacklist_terminator(struct at_chat *chat,
 	chat->terminator_blacklist |= 1 << terminator;
 }
 
-static gboolean check_terminator(struct terminator_info *info, char *line)
+static void at_chat_add_delimiter(struct at_chat *chat, char *delimiter)
+{
+	chat->delimiter = g_strdup(delimiter);
+}
+
+static gboolean check_terminator(struct terminator_info *info, char *line,
+					char *resp)
 {
 	if (info->len == -1 && !strcmp(line, info->terminator))
 		return TRUE;
 
 	if (info->len > 0 && !strncmp(line, info->terminator, info->len))
+		return TRUE;
+
+	if (!resp)
+		return FALSE;
+
+	/* Check delimiter style response last to avoid false positives */
+	if (info->len == -1 && !strcmp(resp, info->terminator))
+		return TRUE;
+
+	if (info->len > 0 && !strncmp(resp, info->terminator, info->len))
 		return TRUE;
 
 	return FALSE;
@@ -513,10 +535,17 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 	int size = sizeof(terminator_table) / sizeof(struct terminator_info);
 	int hint;
 	GSList *l;
+	char *resp = NULL;
+
+	if (p->delimiter != NULL) {
+		resp = strstr(line, p->delimiter);
+		if (resp != NULL && strlen(resp) > 1)
+			resp++;
+	}
 
 	for (i = 0; i < size; i++) {
 		struct terminator_info *info = &terminator_table[i];
-		if (check_terminator(info, line) &&
+		if (check_terminator(info, line, resp) &&
 				(p->terminator_blacklist & 1 << i) == 0) {
 			at_chat_finish_command(p, info->success, line);
 			return TRUE;
@@ -525,7 +554,7 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 
 	for (l = p->terminator_list; l; l = l->next) {
 		struct terminator_info *info = l->data;
-		if (check_terminator(info, line)) {
+		if (check_terminator(info, line, resp)) {
 			at_chat_finish_command(p, info->success, line);
 			return TRUE;
 		}
@@ -1498,6 +1527,14 @@ void g_at_chat_add_terminator(GAtChat *chat, char *terminator,
 		return;
 
 	at_chat_add_terminator(chat->parent, terminator, len, success);
+}
+
+void g_at_chat_add_delimiter(GAtChat *chat, char *delimiter)
+{
+	if (chat == NULL || chat->group != 0)
+		return;
+
+	at_chat_add_delimiter(chat->parent, delimiter);
 }
 
 void g_at_chat_blacklist_terminator(GAtChat *chat,
