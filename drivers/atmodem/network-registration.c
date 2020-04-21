@@ -44,7 +44,7 @@
 #include "vendor.h"
 
 static const char *none_prefix[] = { NULL };
-static const char *creg_prefix[] = { "+CREG=", "+CREG:", NULL };
+static const char *creg_prefix[] = { "+CREG=", NULL };
 static const char *cops_prefix[] = { "+COPS:", NULL };
 static const char *csq_prefix[] = { "+CSQ:", NULL };
 static const char *cind_prefix[] = { "+CIND:", NULL };
@@ -212,35 +212,56 @@ static void at_creg_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	int status, lac, ci, tech;
 	struct ofono_error error;
 	struct netreg_data *nd = cbd->user;
+	GAtResultIter iter;
+	const char *str;
 
-	DBG("");
+#if 1
+	DBG("got creg");
 	decode_at_error(&error, g_at_result_final_response(result));
 
 	if (!ok) {
 		cb(&error, -1, -1, -1, -1, cbd->data);
 		return;
 	}
+#endif
 
-	DBG("");
-	if (at_util_parse_reg(result, "+CREG:", NULL, &status,
-				&lac, &ci, &tech, nd->vendor) == FALSE) {
-		DBG("Aha, we are motmdm");
-	if (at_util_parse_reg(result, "", NULL, &status,
-				&lac, &ci, &tech, nd->vendor) == FALSE) {
+	DBG("iter init");
+	g_at_result_iter_init(&iter, result);
+	DBG("buf: %s, %d", iter.buf, iter.line_pos);
 
-		DBG("But even CREG= could not be parsed");
-#if 0
-		CALLBACK_WITH_FAILURE(cb, -1, -1, -1, -1, cbd->data);
+	DBG("Data: %s", iter.l->data);
+
+	if (g_at_result_iter_next(&iter, "")) {
+		DBG("Don't have +creg");
 		return;
-#else
+	}
+
+	DBG("Data: %s", iter.l->data);
+	
+	if (g_at_result_iter_next_unquoted_string(&iter, &str)) {
+		DBG("no string");
+		return;
+	}
+	DBG("got string");
+	DBG("got string: %s", str);
+
+	DBG("iter get number");
+	if (!g_at_result_iter_next_number(&iter, &status))
+		return;
+
+	DBG("iter got number");
+	DBG("Status: %d ", status);
+
+	if (!g_at_result_iter_next(&iter, "+CREG=")) {
+		DBG("Don't see CREG");
+		return;
+	}
+
 		DBG("Faking success");
 		status = 1;
 		lac = 0x1234;
 		ci = 0xabcd;
 		tech = 1;
-#endif
-	}
-	}
 
 	if ((status == 1 || status == 5) && (tech == -1))
 		tech = nd->tech;
@@ -349,8 +370,6 @@ static void at_registration_status(struct ofono_netreg *netreg,
 		DBG("Creg sent ok ok");
 		return;
 	}
-
-	
 
 	g_free(cbd);
 
