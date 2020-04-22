@@ -216,6 +216,10 @@ static void at_creg_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	DBG("buf: %s, %d", iter.buf, iter.line_pos);
 
 	DBG("Data: %s", iter.l->data);
+	if (!iter.l->data) {
+		DBG("have no data aborting");
+		return;
+	}
 
 	if (g_at_result_iter_next(&iter, "")) {
 		DBG("Don't have +creg");
