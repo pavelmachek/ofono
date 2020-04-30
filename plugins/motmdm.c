@@ -219,7 +219,7 @@ static void modem_initialize(struct ofono_modem *modem)
 
 		DBG("modem initialized?\n");
 
-		//g_at_chat_set_wakeup_command(chat, "AT\n\r", 500, 5000);
+		//g_at_chat_set_wakeup_command(chat, "U0000AT\n\r", 500, 5000);
 
 		data->dlcs[i] = chat;
 
@@ -257,7 +257,7 @@ static void modem_verify(struct ofono_modem *modem)
 	int i;
 
 	for (i=0; i<NUM_DLC; i++) {
-		g_at_chat_send(data->dlcs[i], "AT+FOO", none_prefix, foo_cb, modem, NULL);
+		g_at_chat_send(data->dlcs[i], "U0000AT+FOO", none_prefix, foo_cb, modem, NULL);
 	}
 }
 
@@ -270,6 +270,7 @@ static int motmdm_enable(struct ofono_modem *modem)
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! start\n");
 	modem_verify(modem);
+	DBG("modem verified\n");
 
 	/* AT+SCRN=0 to disable notifications. */
 	/* Test parsing of incoming stuff */
@@ -277,9 +278,12 @@ static int motmdm_enable(struct ofono_modem *modem)
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
 	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
+
+	DBG("sending scrn\n");
 	g_at_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
 	if (use_usb)
-		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
+		g_at_chat_send(data->dlcs[VOICE_DLC], "U0000ATE0", NULL, NULL, modem, NULL);
+	DBG("sending cfun\n");
 	g_at_chat_send(data->dlcs[VOICE_DLC], "U0000AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");

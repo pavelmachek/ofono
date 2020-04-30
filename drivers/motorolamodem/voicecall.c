@@ -242,9 +242,9 @@ static void motorola_dial(struct ofono_voicecall *vc,
 	cbd->user = vc;
 
 	if (ph->type == 145)
-		snprintf(buf, sizeof(buf), "ATD+%s", ph->number);
+		snprintf(buf, sizeof(buf), "U0000ATD+%s", ph->number);
 	else
-		snprintf(buf, sizeof(buf), "ATD%s", ph->number);
+		snprintf(buf, sizeof(buf), "U0000ATD%s", ph->number);
 
 	switch (clir) {
 	case OFONO_CLIR_OPTION_INVOCATION:
@@ -294,7 +294,7 @@ error:
 static void motorola_answer(struct ofono_voicecall *vc,
 			ofono_voicecall_cb_t cb, void *data)
 {
-	motorola_template("ATA", vc, generic_cb, 0, cb, data);
+	motorola_template("U0000ATA", vc, generic_cb, 0, cb, data);
 }
 
 static void motorola_hangup(struct ofono_voicecall *vc,
@@ -302,20 +302,20 @@ static void motorola_hangup(struct ofono_voicecall *vc,
 {
 	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
 
-	motorola_template("ATH", vc, generic_cb, 0x3f, cb, data);
+	motorola_template("U0000ATH", vc, generic_cb, 0x3f, cb, data);
 }
 
 static void motorola_hold_all_active(struct ofono_voicecall *vc,
 				ofono_voicecall_cb_t cb, void *data)
 {
-	motorola_template("AT+CHLD=2", vc, generic_cb, 0, cb, data);
+	motorola_template("U0000AT+CHLD=2", vc, generic_cb, 0, cb, data);
 }
 
 static void motorola_release_all_held(struct ofono_voicecall *vc,
 				ofono_voicecall_cb_t cb, void *data)
 {
 	unsigned int held_status = 1 << CALL_STATUS_HELD;
-	motorola_template("AT+CHLD=0", vc, generic_cb, held_status, cb, data);
+	motorola_template("U0000AT+CHLD=0", vc, generic_cb, held_status, cb, data);
 }
 
 static void motorola_set_udub(struct ofono_voicecall *vc,
@@ -324,14 +324,14 @@ static void motorola_set_udub(struct ofono_voicecall *vc,
 	unsigned int incoming_or_waiting =
 		(1 << CALL_STATUS_INCOMING) | (1 << CALL_STATUS_WAITING);
 
-	motorola_template("AT+CHLD=0", vc, generic_cb, incoming_or_waiting,
+	motorola_template("U0000AT+CHLD=0", vc, generic_cb, incoming_or_waiting,
 			cb, data);
 }
 
 static void motorola_release_all_active(struct ofono_voicecall *vc,
 					ofono_voicecall_cb_t cb, void *data)
 {
-	motorola_template("AT+CHLD=1", vc, generic_cb, 0x1, cb, data);
+	motorola_template("U0000AT+CHLD=1", vc, generic_cb, 0x1, cb, data);
 }
 
 static void motorola_release_specific(struct ofono_voicecall *vc, int id,
@@ -349,7 +349,7 @@ static void motorola_release_specific(struct ofono_voicecall *vc, int id,
 	req->data = data;
 	req->id = id;
 
-	snprintf(buf, sizeof(buf), "AT+CHLD=1%d", id);
+	snprintf(buf, sizeof(buf), "U0000AT+CHLD=1%d", id);
 
 	if (g_at_chat_send(vd->chat, buf, none_prefix,
 				release_id_cb, req, g_free) > 0)
@@ -366,14 +366,14 @@ static void motorola_private_chat(struct ofono_voicecall *vc, int id,
 {
 	char buf[32];
 
-	snprintf(buf, sizeof(buf), "AT+CHLD=2%d", id);
+	snprintf(buf, sizeof(buf), "U0000AT+CHLD=2%d", id);
 	motorola_template(buf, vc, generic_cb, 0, cb, data);
 }
 
 static void motorola_create_multiparty(struct ofono_voicecall *vc,
 					ofono_voicecall_cb_t cb, void *data)
 {
-	motorola_template("AT+CHLD=3", vc, generic_cb, 0, cb, data);
+	motorola_template("U0000AT+CHLD=3", vc, generic_cb, 0, cb, data);
 }
 
 static void motorola_transfer(struct ofono_voicecall *vc,
@@ -388,7 +388,7 @@ static void motorola_transfer(struct ofono_voicecall *vc,
 	 */
 	transfer |= 0x4 | 0x8;
 
-	motorola_template("AT+CHLD=4", vc, generic_cb, transfer, cb, data);
+	motorola_template("U0000AT+CHLD=4", vc, generic_cb, transfer, cb, data);
 }
 
 static void motorola_deflect(struct ofono_voicecall *vc,
@@ -399,7 +399,7 @@ static void motorola_deflect(struct ofono_voicecall *vc,
 	unsigned int incoming_or_waiting =
 		(1 << CALL_STATUS_INCOMING) | (1 << CALL_STATUS_WAITING);
 
-	snprintf(buf, sizeof(buf), "AT+CTFR=%s,%d", ph->number, ph->type);
+	snprintf(buf, sizeof(buf), "U0000AT+CTFR=%s,%d", ph->number, ph->type);
 	motorola_template(buf, vc, generic_cb, incoming_or_waiting, cb, data);
 }
 
@@ -453,7 +453,7 @@ static void motorola_send_dtmf(struct ofono_voicecall *vc, const char *dtmf,
 	if (buf == NULL)
 		goto error;
 
-	s = sprintf(buf, "AT+VTS=%c", dtmf[0]);
+	s = sprintf(buf, "U0000AT+VTS=%c", dtmf[0]);
 
 	for (i = 1; i < len; i++)
 		s += sprintf(buf + s, ";+VTS=%c", dtmf[i]);
@@ -930,9 +930,9 @@ static int motorola_voicecall_probe(struct ofono_voicecall *vc, unsigned int ven
 
 	ofono_voicecall_set_data(vc, vd);
 
-	g_at_chat_send(vd->chat, "AT+CLIP=1", NULL, NULL, NULL, NULL);
+	g_at_chat_send(vd->chat, "U0000AT+CLIP=1", NULL, NULL, NULL, NULL);
 
-	g_at_chat_send(vd->chat, "AT+CCWA=1", NULL,
+	g_at_chat_send(vd->chat, "U0000AT+CCWA=1", NULL,
 				motorola_voicecall_initialized, vc, NULL);
 
 	return 0;
