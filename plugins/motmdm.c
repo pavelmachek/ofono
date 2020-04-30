@@ -71,7 +71,7 @@
 #define OUTSMS_DLC  2
 
 static char *debug_prefixes[NUM_DLC] = { "Voice: ", "InSMS: ", "OutSMS: " };
-static char *devices[NUM_DLC] = { "/dev/motmdm1", "/dev/motmdm9", "/dev/motmdm3" };
+static char *devices[NUM_DLC] = { "/dev/gsmtty1", "/dev/gsmtty9", "/dev/gsmtty3" };
 
 struct motmdm_data {
 	GAtChat *dlcs[NUM_DLC];
@@ -179,8 +179,8 @@ static void modem_initialize(struct ofono_modem *modem)
 
 		if (!use_usb) {
 			device = devices[i]; /* Not a tty device */
-			fd = open(device, O_RDWR);
-			io = g_io_channel_unix_new(fd);
+			io = g_at_tty_open(device, options);
+
 		} else {
 			device = "/dev/ttyUSB4";
 			io = g_at_tty_open(device, options);
@@ -202,20 +202,20 @@ static void modem_initialize(struct ofono_modem *modem)
 		if (chat == NULL)
 			goto error;
 
-		g_at_chat_add_terminator(chat, "+EXT ERROR:", 11, FALSE );
-		g_at_chat_add_terminator(chat,  "+SCRN:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "+CFUN:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "+CLIP:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "+CCWA:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "D:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "H:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "D:ERROR", -1, FALSE  );
-		g_at_chat_add_terminator(chat,  "H:ERROR", -1, FALSE  );
-		g_at_chat_add_terminator(chat,  "+CLCC:", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  ":OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "+FOO:ERROR=9", -1, TRUE  );
-		g_at_chat_add_terminator(chat,  "+CREG:ERROR", -1, FALSE  );
-		g_at_chat_add_terminator(chat,  "+CREG=", 6, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000+EXT ERROR:", 11, FALSE );
+		g_at_chat_add_terminator(chat, "U0000+SCRN:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000+CFUN:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000+CLIP:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000+CCWA:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000D:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000H:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000D:ERROR", -1, FALSE  );
+		g_at_chat_add_terminator(chat, "U0000H:ERROR", -1, FALSE  );
+		g_at_chat_add_terminator(chat, "U0000+CLCC:", -1, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000:OK", -1, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000+FOO:ERROR=9", -1, TRUE  );
+		g_at_chat_add_terminator(chat, "U0000+CREG:ERROR", -1, FALSE  );
+		g_at_chat_add_terminator(chat, "U0000+CREG=", 6, TRUE  );
 
 		DBG("modem initialized?\n");
 
@@ -277,10 +277,10 @@ static int motmdm_enable(struct ofono_modem *modem)
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
 	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
 	if (use_usb)
 		g_at_chat_send(data->dlcs[VOICE_DLC], "ATE0", NULL, NULL, modem, NULL);	
-	g_at_chat_send(data->dlcs[VOICE_DLC], "AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
+	g_at_chat_send(data->dlcs[VOICE_DLC], "U0000AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
 
