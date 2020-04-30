@@ -111,7 +111,7 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	  DBG("mms likely not supported");
 	}
 	/*                          AT+GCMGS */
-	snprintf(buf, sizeof(buf), "AT+GCMGS=\r");
+	snprintf(buf, sizeof(buf), "U0000AT+GCMGS=\r");
 	DBG("CMGS intro is %s", buf);
 	l1 = strlen(buf);
 	
@@ -159,11 +159,11 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	  if (0) {
 		/* Should be a safe fallback, documented, and works for me.
 		   Does not work for Tony. */
-		snprintf(buf, sizeof(buf), "AT+CNMA=0");
+		snprintf(buf, sizeof(buf), "U0000AT+CNMA=0");
 	  } else {
 	  	/* SMSes seem to be acknowledged, but then they
 		   somehow reappear later? */
-		snprintf(buf, sizeof(buf), "AT+GCNMA=1");
+		snprintf(buf, sizeof(buf), "U0000AT+GCNMA=1");
 	  }
 
 	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
@@ -344,10 +344,10 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 
 #if 0
 	/* Tony says this acks sms, I don't see the effect */
-	g_at_chat_send(data->chat, "AT+GCNMA=1", csms_prefix,
+	g_at_chat_send(data->chat, "U0000AT+GCNMA=1", csms_prefix,
 			motorola_csms_query_cb, sms, NULL);
 	/* Weird. Now it says "+CMS=305". I'm pretty sure it did not do that before? */
-	g_at_chat_send(data->chat, "AT+CNMA=0,0", csms_prefix,
+	g_at_chat_send(data->chat, "U0000AT+CNMA=0,0", csms_prefix,
 			motorola_csms_query_cb, sms, NULL);
 #endif
 

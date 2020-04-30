@@ -486,6 +486,8 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 	int hint;
 	GSList *l;
 
+	printf("command response: %s\n", line);
+
 	for (i = 0; i < size; i++) {
 		struct terminator_info *info = &terminator_table[i];
 		if (check_terminator(info, line) &&
@@ -556,6 +558,8 @@ static void have_line(struct at_chat *p, char *str)
 	if (str == NULL)
 		return;
 
+	printf("Have line: %s\n", str);
+	
 	/* Check for echo, this should not happen, but lets be paranoid */
 	if (!strncmp(str, "AT", 2))
 		goto done;
@@ -565,6 +569,8 @@ static void have_line(struct at_chat *p, char *str)
 	if (cmd && p->cmd_bytes_written > 0) {
 		char c = cmd->cmd[p->cmd_bytes_written - 1];
 
+		printf("Last character is %d\n", c);
+
 		/* We check that we have submitted a terminator, in which case
 		 * a command might have failed or completed successfully
 		 *
@@ -573,7 +579,7 @@ static void have_line(struct at_chat *p, char *str)
 		 * commands like CMGS, every \r or Ctrl-Z might result in a
 		 * final response from the modem, so we check this as well.
 		 */
-		if ((c == '\r' || c == 26) &&
+		if ((c == '\n' || c == 26 || c == 13) &&
 		    at_chat_handle_command_response(p, cmd, str)) {
 		  printf("handle command response\n");
 			return;
@@ -723,6 +729,9 @@ static void new_bytes(struct ring_buffer *rbuf, gpointer user_data)
 	while (p->suspended == FALSE && (p->read_so_far < len)) {
 		gsize rbytes = MIN(len - p->read_so_far, wrap - p->read_so_far);
 		result = p->syntax->feed(p->syntax, (char *)buf, &rbytes);
+
+		result = G_AT_SYNTAX_RESULT_LINE;
+		printf("new bytes %d\n", rbytes);
 
 		buf += rbytes;
 		p->read_so_far += rbytes;
