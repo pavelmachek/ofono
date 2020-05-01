@@ -848,7 +848,7 @@ static void ciev_notify(GAtResult *result, gpointer user_data)
 	g_at_result_iter_init(&iter, result);
 
 	printf("Got ciev...\n");
-	if (!g_at_result_iter_next(&iter, "~+CIEV="))
+	if (!g_at_result_iter_next(&iter, "U0000~+CIEV="))
 		return;
 
 	if (!g_at_result_iter_next_number(&iter, &ind))
