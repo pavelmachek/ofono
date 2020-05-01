@@ -118,7 +118,8 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	DBG("pdu len %d", pdu_len);
 	encode_hex_own_buf(pdu, pdu_len, 0, buf_pdu);
 	//strcat(buf, buf_pdu+2);
-	strcat(buf_pdu, "\x1a");
+	strcat(buf_pdu, "\x1a\r");
+	buf_pdu[1] = 'U';
 	//DBG("Complete command is %s", buf);
 
 #if 0
@@ -127,7 +128,7 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 #else
 	g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
 	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
-	g_at_io_write(data->send_chat->parent->io, buf_pdu+2, strlen(buf_pdu)-2);
+	g_at_io_write(data->send_chat->parent->io, buf_pdu+1, strlen(buf_pdu)-1);
 	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
 #endif
 	data->cbd = cbd;
