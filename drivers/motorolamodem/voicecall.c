@@ -898,18 +898,18 @@ static void motorola_voicecall_initialized(gboolean ok, GAtResult *result,
 
 	DBG("voicecall_init: registering to notifications");
 
-	g_at_chat_register(vd->chat, "RING", ring_notify, FALSE, vc, NULL);
-	g_at_chat_register(vd->chat, "+CRING:", cring_notify, FALSE, vc, NULL);
-	g_at_chat_register(vd->chat, "+CLIP:", clip_notify, FALSE, vc, NULL);
-	g_at_chat_register(vd->chat, "~+CLIP=", clip_notify, FALSE, vc, NULL);
-	g_at_chat_register(vd->chat, "~+CIEV=", ciev_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000RING", ring_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000+CRING:", cring_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000+CLIP:", clip_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000~+CLIP=", clip_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000~+CIEV=", ciev_notify, FALSE, vc, NULL);
 	
-	g_at_chat_register(vd->chat, "+CDIP:", cdip_notify, FALSE, vc, NULL);
-	g_at_chat_register(vd->chat, "+CNAP:", cnap_notify, FALSE, vc, NULL);
-	g_at_chat_register(vd->chat, "+CCWA:", ccwa_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000+CDIP:", cdip_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000+CNAP:", cnap_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000+CCWA:", ccwa_notify, FALSE, vc, NULL);
 
-	g_at_chat_register(vd->chat, "+CSSI:", cssi_notify, FALSE, vc, NULL);
-	g_at_chat_register(vd->chat, "+CSSU:", cssu_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000+CSSI:", cssi_notify, FALSE, vc, NULL);
+	g_at_chat_register(vd->chat, "U0000+CSSU:", cssu_notify, FALSE, vc, NULL);
 
 	ofono_voicecall_register(vc);
 }

@@ -559,6 +559,13 @@ static void have_line(struct at_chat *p, char *str)
 		return;
 
 	printf("Have line: %s\n", str);
+
+	if (str[0] == 'U' && isdigit(str[1]) && isdigit(str[2]) && isdigit(str[3]) && isdigit(str[4])) {
+	  str[1] = '0';
+	  str[2] = '0';
+	  str[3] = '0';
+	  str[4] = '0';
+	}
 	
 	/* Check for echo, this should not happen, but lets be paranoid */
 	if (!strncmp(str, "AT", 2))
