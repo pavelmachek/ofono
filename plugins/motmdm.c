@@ -345,7 +345,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 	}
 #endif
 	
-	ofono_netreg_create(modem, OFONO_VENDOR_GENERIC, "atmodem", data->dlcs[VOICE_DLC]);
+	//ofono_netreg_create(modem, OFONO_VENDOR_GENERIC, "atmodem", data->dlcs[VOICE_DLC]);
 
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
