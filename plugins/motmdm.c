@@ -36,6 +36,7 @@
 
 #include <glib.h>
 #include <gatchat.h>
+#include <motchat.h>
 #include <gattty.h>
 #include <gatmux.h>
 
@@ -74,7 +75,7 @@ static char *debug_prefixes[NUM_DLC] = { "Voice: ", "InSMS: ", "OutSMS: " };
 static char *devices[NUM_DLC] = { "/dev/gsmtty1", "/dev/gsmtty9", "/dev/gsmtty3" };
 
 struct motmdm_data {
-	GAtChat *dlcs[NUM_DLC];
+	GMotChat *dlcs[NUM_DLC];
 	struct ofono_sim *sim;
 	int initialized;
 };
@@ -152,7 +153,7 @@ static void scrn_cb(gboolean ok, GAtResult *result, gpointer user_data)
 static void modem_initialize(struct ofono_modem *modem)
 {
 	GAtSyntax *syntax;
-	GAtChat *chat;
+	GMotChat *chat;
 	const char *device;
 	GIOChannel *io;
 	GHashTable *options;
@@ -195,37 +196,37 @@ static void modem_initialize(struct ofono_modem *modem)
 		/* 
 		 */
 		syntax = g_at_syntax_new_gsm_permissive();
-		chat = g_at_chat_new(io, syntax);
+		chat = g_mot_chat_new(io, syntax);
 		g_at_syntax_unref(syntax);
 		g_io_channel_unref(io);
 
 		if (chat == NULL)
 			goto error;
 
-		g_at_chat_add_terminator(chat, "U0000+EXT ERROR:", 11, FALSE );
-		g_at_chat_add_terminator(chat, "U0000+SCRN:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat, "U0000+CFUN:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat, "U0000+CLIP:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat, "U0000+CCWA:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat, "U0000D:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat, "U0000H:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat, "U0000D:ERROR", -1, FALSE  );
-		g_at_chat_add_terminator(chat, "U0000H:ERROR", -1, FALSE  );
-		g_at_chat_add_terminator(chat, "U0000+CLCC:", -1, TRUE  );
-		g_at_chat_add_terminator(chat, "U0000:OK", -1, TRUE  );
-		g_at_chat_add_terminator(chat, "U0000+FOO:ERROR=9", -1, TRUE  );
-		g_at_chat_add_terminator(chat, "U0000+CREG:ERROR", -1, FALSE  );
-		g_at_chat_add_terminator(chat, "U0000+CREG=", 6, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+EXT ERROR:", 11, FALSE );
+		g_mot_chat_add_terminator(chat, "U0000+SCRN:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+CFUN:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+CLIP:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+CCWA:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000D:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000H:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000D:ERROR", -1, FALSE  );
+		g_mot_chat_add_terminator(chat, "U0000H:ERROR", -1, FALSE  );
+		g_mot_chat_add_terminator(chat, "U0000+CLCC:", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000:OK", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+FOO:ERROR=9", -1, TRUE  );
+		g_mot_chat_add_terminator(chat, "U0000+CREG:ERROR", -1, FALSE  );
+		g_mot_chat_add_terminator(chat, "U0000+CREG=", 6, TRUE  );
 
 		DBG("modem initialized?\n");
 
-		//g_at_chat_set_wakeup_command(chat, "U0000AT\n\r", 500, 5000);
+		//g_mot_chat_set_wakeup_command(chat, "U0000AT\n\r", 500, 5000);
 
 		data->dlcs[i] = chat;
 
 		if (getenv("OFONO_AT_DEBUG")) {
 			DBG("debugging enabled\n");
-			g_at_chat_set_debug(data->dlcs[i], motmdm_debug,
+			g_mot_chat_set_debug(data->dlcs[i], motmdm_debug,
 					    debug_prefixes[i]);
 		}
 		else
@@ -257,7 +258,7 @@ static void modem_verify(struct ofono_modem *modem)
 	int i;
 
 	for (i=0; i<NUM_DLC; i++) {
-		g_at_chat_send(data->dlcs[i], "U0000AT+FOO", none_prefix, foo_cb, modem, NULL);
+		g_mot_chat_send(data->dlcs[i], "U0000AT+FOO", none_prefix, foo_cb, modem, NULL);
 	}
 }
 
@@ -276,15 +277,15 @@ static int motmdm_enable(struct ofono_modem *modem)
 	/* Test parsing of incoming stuff */
 
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
-	g_at_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
+	g_mot_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
 
 	DBG("sending scrn\n");
-	g_at_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
+	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
 	if (use_usb)
-		g_at_chat_send(data->dlcs[VOICE_DLC], "U0000ATE0", NULL, NULL, modem, NULL);
+		g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000ATE0", NULL, NULL, modem, NULL);
 	DBG("sending cfun\n");
-	g_at_chat_send(data->dlcs[VOICE_DLC], "U0000AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
+	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
 
@@ -299,7 +300,7 @@ static int motmdm_disable(struct ofono_modem *modem)
 	DBG("%p", modem);
 
 	for (i = 0; i < NUM_DLC;  i++) {
-		g_at_chat_unref(data->dlcs[i]);
+		g_mot_chat_unref(data->dlcs[i]);
 		data->dlcs[i] = NULL;
 	}
 

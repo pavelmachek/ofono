@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __GATCHAT_H
-#define __GATCHAT_H
+#ifndef __GMOTCHAT_H
+#define __GMOTCHAT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,15 +31,15 @@ extern "C" {
 #include "gatutil.h"
 #include "gatio.h"
 
-struct _GAtChat;
+struct _GMotChat;
 
-typedef struct _GAtChat GAtChat;
+typedef struct _GMotChat GMotChat;
 
 typedef void (*GAtResultFunc)(gboolean success, GAtResult *result,
 				gpointer user_data);
 typedef void (*GAtNotifyFunc)(GAtResult *result, gpointer user_data);
 
-enum _GAtChatTerminator {
+enum _GMotChatTerminator {
 	G_MOT_CHAT_TERMINATOR_OK,
 	G_MOT_CHAT_TERMINATOR_ERROR,
 	G_MOT_CHAT_TERMINATOR_NO_DIALTONE,
@@ -52,34 +52,34 @@ enum _GAtChatTerminator {
 	G_MOT_CHAT_TERMINATOR_EXT_ERROR,
 };
 
-typedef enum _GAtChatTerminator GAtChatTerminator;
+typedef enum _GMotChatTerminator GMotChatTerminator;
 
-GAtChat *g_mot_chat_new(GIOChannel *channel, GAtSyntax *syntax);
-GAtChat *g_mot_chat_new_blocking(GIOChannel *channel, GAtSyntax *syntax);
+GMotChat *g_mot_chat_new(GIOChannel *channel, GAtSyntax *syntax);
+GMotChat *g_mot_chat_new_blocking(GIOChannel *channel, GAtSyntax *syntax);
 
-GIOChannel *g_mot_chat_get_channel(GAtChat *chat);
-GAtIO *g_mot_chat_get_io(GAtChat *chat);
+GIOChannel *g_mot_chat_get_channel(GMotChat *chat);
+GAtIO *g_mot_chat_get_io(GMotChat *chat);
 
-GAtChat *g_mot_chat_ref(GAtChat *chat);
-void g_mot_chat_unref(GAtChat *chat);
+GMotChat *g_mot_chat_ref(GMotChat *chat);
+void g_mot_chat_unref(GMotChat *chat);
 
-GAtChat *g_mot_chat_clone(GAtChat *chat);
+GMotChat *g_mot_chat_clone(GMotChat *chat);
 
-GAtChat *g_mot_chat_set_slave(GAtChat *chat, GAtChat *slave);
-GAtChat *g_mot_chat_get_slave(GAtChat *chat);
+GMotChat *g_mot_chat_set_slave(GMotChat *chat, GMotChat *slave);
+GMotChat *g_mot_chat_get_slave(GMotChat *chat);
 
-void g_mot_chat_suspend(GAtChat *chat);
-void g_mot_chat_resume(GAtChat *chat);
+void g_mot_chat_suspend(GMotChat *chat);
+void g_mot_chat_resume(GMotChat *chat);
 
-gboolean g_mot_chat_set_disconnect_function(GAtChat *chat,
+gboolean g_mot_chat_set_disconnect_function(GMotChat *chat,
 			GAtDisconnectFunc disconnect, gpointer user_data);
 
 /*!
  * If the function is not NULL, then on every read/write from the GIOChannel
- * provided to GAtChat the logging function will be called with the
+ * provided to GMotChat the logging function will be called with the
  * input/output string and user data
  */
-gboolean g_mot_chat_set_debug(GAtChat *chat,
+gboolean g_mot_chat_set_debug(GMotChat *chat,
 				GAtDebugFunc func, gpointer user_data);
 
 /*!
@@ -111,7 +111,7 @@ gboolean g_mot_chat_set_debug(GAtChat *chat,
  * part of the command response.  This can be used to get around broken
  * modems which send unsolicited notifications during command processing.
  */
-guint g_mot_chat_send(GAtChat *chat, const char *cmd,
+guint g_mot_chat_send(GMotChat *chat, const char *cmd,
 				const char **valid_resp, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify);
 
@@ -122,7 +122,7 @@ guint g_mot_chat_send(GAtChat *chat, const char *cmd,
  * final GAtResult will not contain any lines from the intermediate responses.
  * This is useful for listing commands such as CPBR.
  */
-guint g_mot_chat_send_listing(GAtChat *chat, const char *cmd,
+guint g_mot_chat_send_listing(GMotChat *chat, const char *cmd,
 				const char **valid_resp,
 				GAtNotifyFunc listing, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify);
@@ -134,7 +134,7 @@ guint g_mot_chat_send_listing(GAtChat *chat, const char *cmd,
  *
  * This is useful for PDU listing commands like the +CMGL
  */
-guint g_mot_chat_send_pdu_listing(GAtChat *chat, const char *cmd,
+guint g_mot_chat_send_pdu_listing(GMotChat *chat, const char *cmd,
 				const char **valid_resp,
 				GAtNotifyFunc listing, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify);
@@ -143,38 +143,38 @@ guint g_mot_chat_send_pdu_listing(GAtChat *chat, const char *cmd,
  * Same as g_mot_chat_send except parser will know to expect short prompt syntax
  * used with +CPOS.
  */
-guint g_mot_chat_send_and_expect_short_prompt(GAtChat *chat, const char *cmd,
+guint g_mot_chat_send_and_expect_short_prompt(GMotChat *chat, const char *cmd,
 				const char **valid_resp, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify);
 
-gboolean g_mot_chat_cancel(GAtChat *chat, guint id);
-gboolean g_mot_chat_cancel_all(GAtChat *chat);
+gboolean g_mot_chat_cancel(GMotChat *chat, guint id);
+gboolean g_mot_chat_cancel_all(GMotChat *chat);
 
-gpointer g_mot_chat_get_userdata(GAtChat *chat, guint id);
+gpointer g_mot_chat_get_userdata(GMotChat *chat, guint id);
 
-guint g_mot_chat_register(GAtChat *chat, const char *prefix,
+guint g_mot_chat_register(GMotChat *chat, const char *prefix,
 				GAtNotifyFunc func, gboolean expect_pdu,
 				gpointer user_data, GDestroyNotify notify);
 
-gboolean g_mot_chat_unregister(GAtChat *chat, guint id);
-gboolean g_mot_chat_unregister_all(GAtChat *chat);
+gboolean g_mot_chat_unregister(GMotChat *chat, guint id);
+gboolean g_mot_chat_unregister_all(GMotChat *chat);
 
-gboolean g_mot_chat_set_wakeup_command(GAtChat *chat, const char *cmd,
+gboolean g_mot_chat_set_wakeup_command(GMotChat *chat, const char *cmd,
 					guint timeout, guint msec);
 
-void g_mot_chat_add_terminator(GAtChat *chat, char *terminator,
+void g_mot_chat_add_terminator(GMotChat *chat, char *terminator,
 				int len, gboolean success);
-void g_mot_chat_blacklist_terminator(GAtChat *chat,
-						GAtChatTerminator terminator);
+void g_mot_chat_blacklist_terminator(GMotChat *chat,
+						GMotChatTerminator terminator);
 
-struct _GAtChat {
+struct _GMotChat {
 	gint ref_count;
-	struct at_chat *parent;
+	struct mot_chat *parent;
 	guint group;
-	GAtChat *slave;
+	GMotChat *slave;
 };
 
-struct at_chat {
+struct mot_chat {
 	gint ref_count;				/* Ref count */
 	guint next_cmd_id;			/* Next command id */
 	guint next_notify_id;			/* Next notify id */
