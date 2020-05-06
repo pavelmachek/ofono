@@ -123,8 +123,8 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	//DBG("Complete command is %s", buf);
 
 #if 0
-	g_at_chat_send(data->send_chat, buf, none_prefix, NULL, data, NULL);
-	g_at_chat_send(data->send_chat, buf_pdu+2, none_prefix, NULL, data, NULL);
+	g_mot_chat_send(data->send_chat, buf, none_prefix, NULL, data, NULL);
+	g_mot_chat_send(data->send_chat, buf_pdu+2, none_prefix, NULL, data, NULL);
 #else
 	g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
 	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
@@ -135,7 +135,7 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	return;
 	  
 /*
-	if (g_at_chat_send(data->send_chat, buf, cmgs_prefix,
+	if (g_mot_chat_send(data->send_chat, buf, cmgs_prefix,
 				motorola_cmgs_cb, cbd, g_free) > 0)
 		return;
 */
@@ -167,7 +167,7 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 		snprintf(buf, sizeof(buf), "U0000AT+GCNMA=1");
 	  }
 
-	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
+	g_mot_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
 }
 
 #if 0
@@ -334,21 +334,21 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	DBG("**************************** this should be called");
 
 	data = g_new0(struct sms_data, 1);
-	data->chat = g_at_chat_clone(param->receive_chat);
-	data->send_chat = g_at_chat_clone(param->send_chat);
+	data->chat = g_mot_chat_clone(param->receive_chat);
+	data->send_chat = g_mot_chat_clone(param->send_chat);
 	data->vendor = vendor;
 
 	ofono_sms_set_data(sms, data);
 
-	g_at_chat_register(data->chat, "", insms_notify, FALSE, sms, NULL);
-	g_at_chat_register(data->send_chat, "+GCMGS", motorola_cmgs_cb, FALSE, sms, NULL);
+	g_mot_chat_register(data->chat, "", insms_notify, FALSE, sms, NULL);
+	g_mot_chat_register(data->send_chat, "+GCMGS", motorola_cmgs_cb, FALSE, sms, NULL);
 
 #if 0
 	/* Tony says this acks sms, I don't see the effect */
-	g_at_chat_send(data->chat, "U0000AT+GCNMA=1", csms_prefix,
+	g_mot_chat_send(data->chat, "U0000AT+GCNMA=1", csms_prefix,
 			motorola_csms_query_cb, sms, NULL);
 	/* Weird. Now it says "+CMS=305". I'm pretty sure it did not do that before? */
-	g_at_chat_send(data->chat, "U0000AT+CNMA=0,0", csms_prefix,
+	g_mot_chat_send(data->chat, "U0000AT+CNMA=0,0", csms_prefix,
 			motorola_csms_query_cb, sms, NULL);
 #endif
 
@@ -392,8 +392,8 @@ static void motorola_sms_remove(struct ofono_sms *sms)
 
 	l_free(data->cnma_ack_pdu);
 
-	g_at_chat_unref(data->chat);
-	g_at_chat_unref(data->send_chat);
+	g_mot_chat_unref(data->chat);
+	g_mot_chat_unref(data->send_chat);
 	g_free(data);
 
 	ofono_sms_set_data(sms, NULL);
