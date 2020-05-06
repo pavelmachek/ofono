@@ -120,7 +120,7 @@ gdbus_libgdbus_internal_la_SOURCES = gdbus/gdbus.h \
 				gdbus/mainloop.c gdbus/watch.c \
 				gdbus/object.c gdbus/client.c gdbus/polkit.c
 
-gatchat_sources = gatchat/gatchat.h gatchat/gatchat.c \
+gatchat_sources = gatchat/gatchat.h gatchat/gatchat.c gatchat/motchat.c \
 				gatchat/gatresult.h gatchat/gatresult.c \
 				gatchat/gatsyntax.h gatchat/gatsyntax.c \
 				gatchat/ringbuffer.h gatchat/ringbuffer.c \
