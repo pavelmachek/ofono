@@ -75,6 +75,43 @@ struct at_notify {
 	gboolean pdu;
 };
 
+struct at_chat {
+	gint ref_count;				/* Ref count */
+	guint next_cmd_id;			/* Next command id */
+	guint next_notify_id;			/* Next notify id */
+	guint next_gid;				/* Next group id */
+	GAtIO *io;				/* AT IO */
+	GQueue *command_queue;			/* Command queue */
+	guint cmd_bytes_written;		/* bytes written from cmd */
+	GHashTable *notify_list;		/* List of notification reg */
+	GAtDisconnectFunc user_disconnect;	/* user disconnect func */
+	gpointer user_disconnect_data;		/* user disconnect data */
+	guint read_so_far;			/* Number of bytes processed */
+	gboolean suspended;			/* Are we suspended? */
+	GAtDebugFunc debugf;			/* debugging output function */
+	gpointer debug_data;			/* Data to pass to debug func */
+	char *pdu_notify;			/* Unsolicited Resp w/ PDU */
+	GSList *response_lines;			/* char * lines of the response */
+	char *wakeup;				/* command sent to wakeup modem */
+	gint timeout_source;
+	gdouble inactivity_time;		/* Period of inactivity */
+	guint wakeup_timeout;			/* How long to wait for resp */
+	GTimer *wakeup_timer;			/* Keep track of elapsed time */
+	GAtSyntax *syntax;
+	gboolean destroyed;			/* Re-entrancy guard */
+	gboolean in_read_handler;		/* Re-entrancy guard */
+	gboolean in_notify;
+	GSList *terminator_list;		/* Non-standard terminator */
+	guint16 terminator_blacklist;		/* Blacklisted terinators */
+};
+
+struct _GAtChat {
+	gint ref_count;
+	struct at_chat *parent;
+	guint group;
+	GAtChat *slave;
+};
+
 struct terminator_info {
 	char *terminator;
 	int len;
@@ -233,22 +270,13 @@ static struct at_command *at_command_create(guint gid, const char *cmd,
 
 	memcpy(c->cmd, cmd, len);
 
-	printf("Have command of length %d (%s)\n", len, cmd);
-
 	/* If we have embedded '\r' then this is a command expecting a prompt
 	 * from the modem.  Embed Ctrl-Z at the very end automatically
 	 */
 	if (wakeup == FALSE) {
-	  printf("Adding \r or ^z\n");
-	  if (strchr(cmd, '\r')) {
-			c->cmd[len++] = 26;
-	    
-#if 0
-			c->cmd[len++] = 26;
-			c->cmd[len++] = '\n';			
-			c->cmd[len] = '\r';
-#endif
-	  } else
+		if (strchr(cmd, '\r'))
+			c->cmd[len] = 26;
+		else
 			c->cmd[len] = '\r';
 
 		len += 1;
@@ -486,8 +514,6 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 	int hint;
 	GSList *l;
 
-	printf("command response: %s\n", line);
-
 	for (i = 0; i < size; i++) {
 		struct terminator_info *info = &terminator_table[i];
 		if (check_terminator(info, line) &&
@@ -504,23 +530,18 @@ static gboolean at_chat_handle_command_response(struct at_chat *p,
 			return TRUE;
 		}
 	}
-	
+
 	if (cmd->prefixes) {
 		int n;
 
-		for (n = 0; cmd->prefixes[n]; n++) {
-		  printf("Command prefixes: %s / %s\n", line, cmd->prefixes[n]);
-
+		for (n = 0; cmd->prefixes[n]; n++)
 			if (g_str_has_prefix(line, cmd->prefixes[n]))
 				goto out;
-		}
 
-		printf("Prefix not found\n");
 		return FALSE;
 	}
 
 out:
-	printf("Going out... pdu/multiline?!\n");
 	if (cmd->listing && (cmd->flags & COMMAND_FLAG_EXPECT_PDU))
 		hint = G_AT_SYNTAX_EXPECT_PDU;
 	else
@@ -558,15 +579,6 @@ static void have_line(struct at_chat *p, char *str)
 	if (str == NULL)
 		return;
 
-	printf("Have line: %s\n", str);
-
-	if (str[0] == 'U' && isdigit(str[1]) && isdigit(str[2]) && isdigit(str[3]) && isdigit(str[4])) {
-	  str[1] = '0';
-	  str[2] = '0';
-	  str[3] = '0';
-	  str[4] = '0';
-	}
-	
 	/* Check for echo, this should not happen, but lets be paranoid */
 	if (!strncmp(str, "AT", 2))
 		goto done;
@@ -576,8 +588,6 @@ static void have_line(struct at_chat *p, char *str)
 	if (cmd && p->cmd_bytes_written > 0) {
 		char c = cmd->cmd[p->cmd_bytes_written - 1];
 
-		printf("Last character is %d\n", c);
-
 		/* We check that we have submitted a terminator, in which case
 		 * a command might have failed or completed successfully
 		 *
@@ -586,20 +596,15 @@ static void have_line(struct at_chat *p, char *str)
 		 * commands like CMGS, every \r or Ctrl-Z might result in a
 		 * final response from the modem, so we check this as well.
 		 */
-		if ((c == '\n' || c == 26 || c == 13) &&
-		    at_chat_handle_command_response(p, cmd, str)) {
-		  printf("handle command response\n");
+		if ((c == '\r' || c == 26) &&
+				at_chat_handle_command_response(p, cmd, str))
 			return;
-		}
 	}
 
-	if (at_chat_match_notify(p, str) == TRUE) {
-	  printf("match notify said true\n");
+	if (at_chat_match_notify(p, str) == TRUE)
 		return;
-	}
 
 done:
-	printf("ignoring line\n");
 	/* No matches & no commands active, ignore line */
 	g_free(str);
 }
@@ -736,9 +741,6 @@ static void new_bytes(struct ring_buffer *rbuf, gpointer user_data)
 	while (p->suspended == FALSE && (p->read_so_far < len)) {
 		gsize rbytes = MIN(len - p->read_so_far, wrap - p->read_so_far);
 		result = p->syntax->feed(p->syntax, (char *)buf, &rbytes);
-
-		result = G_AT_SYNTAX_RESULT_LINE;
-		printf("new bytes %d\n", rbytes);
 
 		buf += rbytes;
 		p->read_so_far += rbytes;
@@ -880,16 +882,14 @@ static gboolean can_write_data(gpointer data)
 
 	cr = strchr(cmd->cmd + chat->cmd_bytes_written, '\r');
 
-	if (cr) {
-	  //printf("FIXME: hack, not limiting to first r\n");
-	  towrite = cr - (cmd->cmd + chat->cmd_bytes_written) + 1;
-	}
+	if (cr)
+		towrite = cr - (cmd->cmd + chat->cmd_bytes_written) + 1;
 
 #ifdef WRITE_SCHEDULER_DEBUG
 	limiter = towrite;
 
-	if (limiter > 1)
-		limiter = 1;
+	if (limiter > 5)
+		limiter = 5;
 #endif
 
 	bytes_written = g_at_io_write(chat->io,
@@ -1192,7 +1192,7 @@ static guint at_chat_register(struct at_chat *chat, guint group,
 	if (func == NULL)
 		return 0;
 
-	if (prefix == NULL)
+	if (prefix == NULL || strlen(prefix) == 0)
 		return 0;
 
 	notify = g_hash_table_lookup(chat->notify_list, prefix);
