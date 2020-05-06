@@ -38,6 +38,7 @@
 #include "util.h"
 
 #include "gatchat.h"
+#include "motchat.h"
 #include "gatresult.h"
 
 #include "motorolamodem.h"
@@ -47,7 +48,7 @@ static const char *none_prefix[] = { NULL };
 struct sms_data {
 	char *cnma_ack_pdu;
 	int cnma_ack_pdu_len;
-	GAtChat *chat, *send_chat;
+	GMotChat *chat, *send_chat;
 	unsigned int vendor;
 
   struct cb_data *cbd; /* callback data for */

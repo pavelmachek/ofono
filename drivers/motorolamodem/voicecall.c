@@ -35,6 +35,7 @@
 #include <ofono/voicecall.h>
 
 #include "gatchat.h"
+#include "motchat.h"
 #include "gatresult.h"
 
 #include "common.h"
@@ -57,7 +58,7 @@ struct voicecall_data {
 	GSList *calls;
 	unsigned int local_release;
 	unsigned int clcc_source;
-	GAtChat *chat;
+	GMotChat *chat;
 	unsigned int vendor;
 	unsigned int tone_duration;
 	guint vts_source;
@@ -917,7 +918,7 @@ static void motorola_voicecall_initialized(gboolean ok, GAtResult *result,
 static int motorola_voicecall_probe(struct ofono_voicecall *vc, unsigned int vendor,
 				void *data)
 {
-	GAtChat *chat = data;
+	GMotChat *chat = data;
 	struct voicecall_data *vd;
 
 	vd = g_try_new0(struct voicecall_data, 1);

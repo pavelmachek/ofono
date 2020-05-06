@@ -24,6 +24,7 @@
 #endif
 
 #include <glib.h>
+#include <motchat.h>
 #include <gatchat.h>
 
 #define OFONO_API_SUBJECT_TO_CHANGE
