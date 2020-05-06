@@ -28,6 +28,6 @@ extern void motorola_sms_init(void);
 extern void motorola_sms_exit(void);
 
 struct motorola_sms_params {
-  GAtChat *receive_chat;
-  GAtChat *send_chat;
+  GMotChat *receive_chat;
+  GMotChat *send_chat;
 };
