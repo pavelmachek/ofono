@@ -435,19 +435,6 @@ static void mot_chat_finish_command(struct mot_chat *p, gboolean ok, char *final
 	at_command_destroy(cmd);
 }
 
-static struct terminator_info terminator_table[] = {
-	{ "OK", -1, TRUE },
-	{ "ERROR", -1, FALSE },
-	{ "NO DIALTONE", -1, FALSE },
-	{ "BUSY", -1, FALSE },
-	{ "NO CARRIER", -1, FALSE },
-	{ "CONNECT", 7, TRUE },
-	{ "NO ANSWER", -1, FALSE },
-	{ "+CMS ERROR:", 11, FALSE },
-	{ "+CME ERROR:", 11, FALSE },
-	{ "+EXT ERROR:", 11, FALSE }
-};
-
 static void mot_chat_add_terminator(struct mot_chat *chat, char *terminator,
 					int len, gboolean success)
 {
@@ -480,19 +467,9 @@ static gboolean mot_chat_handle_command_response(struct mot_chat *p,
 							char *line)
 {
 	int i;
-	int size = sizeof(terminator_table) / sizeof(struct terminator_info);
 	GSList *l;
 
 	printf("command response: %s\n", line);
-
-	for (i = 0; i < size; i++) {
-		struct terminator_info *info = &terminator_table[i];
-		if (check_terminator(info, line) &&
-				(p->terminator_blacklist & 1 << i) == 0) {
-			mot_chat_finish_command(p, info->success, line);
-			return TRUE;
-		}
-	}
 
 	for (l = p->terminator_list; l; l = l->next) {
 		struct terminator_info *info = l->data;
@@ -524,6 +501,7 @@ out:
 		return TRUE;
 	}
 
+	/* FIXME: cmd->listing support can be removed? */
 	if (cmd->listing) {
 		GAtResult result;
 
