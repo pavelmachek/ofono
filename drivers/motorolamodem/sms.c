@@ -104,7 +104,6 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	struct sms_data *data = ofono_sms_get_data(sms);
 	struct cb_data *cbd = cb_data_new(cb, user_data);
 	char buf[512], buf_pdu[512];
-	int l1;
 
 	DBG("");
 
@@ -114,7 +113,6 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	/*                          AT+GCMGS */
 	snprintf(buf, sizeof(buf), "U0000AT+GCMGS=\r");
 	DBG("CMGS intro is %s", buf);
-	l1 = strlen(buf);
 	
 	DBG("pdu len %d", pdu_len);
 	encode_hex_own_buf(pdu, pdu_len, 0, buf_pdu);
@@ -400,11 +398,12 @@ static void motorola_sms_remove(struct ofono_sms *sms)
 	ofono_sms_set_data(sms, NULL);
 }
 
+#if 0
 static void motorola_unimpl(void)
 {
 	DBG("");
 }
-
+#endif
 
 static const struct ofono_sms_driver driver = {
 	.name		= "motorolamodem",
