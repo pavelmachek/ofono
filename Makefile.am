@@ -510,6 +510,7 @@ builtin_modules += motorolamodem
 builtin_sources += drivers/motorolamodem/motorolamodem.c \
 			drivers/motorolamodem/motorolamodem.h \
 			drivers/motorolamodem/voicecall.c \
+			drivers/motorolamodem/network-registration.c \
 			drivers/motorolamodem/sms.c
 
 
