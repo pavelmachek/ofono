@@ -27,7 +27,6 @@ extern "C" {
 #endif
 
 #include "gatresult.h"
-#include "gatsyntax.h"
 #include "gatutil.h"
 #include "gatio.h"
 
@@ -54,8 +53,8 @@ enum _GMotChatTerminator {
 
 typedef enum _GMotChatTerminator GMotChatTerminator;
 
-GMotChat *g_mot_chat_new(GIOChannel *channel, GAtSyntax *syntax);
-GMotChat *g_mot_chat_new_blocking(GIOChannel *channel, GAtSyntax *syntax);
+GMotChat *g_mot_chat_new(GIOChannel *channel);
+GMotChat *g_mot_chat_new_blocking(GIOChannel *channel);
 
 GIOChannel *g_mot_chat_get_channel(GMotChat *chat);
 GAtIO *g_mot_chat_get_io(GMotChat *chat);
