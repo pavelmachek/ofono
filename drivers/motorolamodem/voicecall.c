@@ -586,7 +586,7 @@ static void clip_notify(GAtResult *result, gpointer user_data)
 	printf("Got clip...\n");
 
 	if (/* !g_at_result_iter_next(&iter, "+CLIP:") && */
-	    !g_at_result_iter_next(&iter, "~+CLIP="))
+	    !g_at_result_iter_next(&iter, "U0000~+CLIP="))
 		return;
 
 	if (!g_at_result_iter_next_string(&iter, &num))
