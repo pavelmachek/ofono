@@ -325,9 +325,6 @@ static void chat_cleanup(struct mot_chat *chat)
 		chat->timeout_source = 0;
 	}
 
-	g_at_syntax_unref(chat->syntax);
-	chat->syntax = NULL;
-
 	if (chat->terminator_list) {
 		g_slist_free_full(chat->terminator_list, free_terminator);
 		chat->terminator_list = NULL;
@@ -376,10 +373,6 @@ static gboolean mot_chat_match_notify(struct mot_chat *chat, char *line)
 
 		if (notify->pdu) {
 			chat->pdu_notify = line;
-
-			if (chat->syntax->set_hint)
-				chat->syntax->set_hint(chat->syntax,
-							G_AT_SYNTAX_EXPECT_PDU);
 			return TRUE;
 		}
 
@@ -521,13 +514,6 @@ static gboolean mot_chat_handle_command_response(struct mot_chat *p,
 
 out:
 	printf("Going out... pdu/multiline?!\n");
-	if (cmd->listing && (cmd->flags & COMMAND_FLAG_EXPECT_PDU))
-		hint = G_AT_SYNTAX_EXPECT_PDU;
-	else
-		hint = G_AT_SYNTAX_EXPECT_MULTILINE;
-
-	if (p->syntax->set_hint)
-		p->syntax->set_hint(p->syntax, hint);
 
 	if (cmd->listing && (cmd->flags & COMMAND_FLAG_EXPECT_PDU)) {
 		p->pdu_notify = line;
@@ -660,10 +646,6 @@ static void have_pdu(struct mot_chat *p, char *pdu)
 
 	if (listing_pdu) {
 		cmd->listing(&result, cmd->user_data);
-
-		if (p->syntax->set_hint)
-			p->syntax->set_hint(p->syntax,
-						G_AT_SYNTAX_EXPECT_MULTILINE);
 	} else
 		have_notify_pdu(p, pdu, &result);
 
@@ -735,8 +717,6 @@ static void new_bytes(struct ring_buffer *rbuf, gpointer user_data)
 
 	while (p->suspended == FALSE && (p->read_so_far < len)) {
 		gsize rbytes = MIN(len - p->read_so_far, wrap - p->read_so_far);
-		result = p->syntax->feed(p->syntax, (char *)buf, &rbytes);
-
 		result = G_AT_SYNTAX_RESULT_LINE;
 		printf("new bytes %d\n", rbytes);
 
@@ -748,28 +728,7 @@ static void new_bytes(struct ring_buffer *rbuf, gpointer user_data)
 			wrap = len;
 		}
 
-		if (result == G_AT_SYNTAX_RESULT_UNSURE)
-			continue;
-
-		switch (result) {
-		case G_AT_SYNTAX_RESULT_LINE:
-		case G_AT_SYNTAX_RESULT_MULTILINE:
-			have_line(p, extract_line(p, rbuf));
-			break;
-
-		case G_AT_SYNTAX_RESULT_PDU:
-			have_pdu(p, extract_line(p, rbuf));
-			break;
-
-		case G_AT_SYNTAX_RESULT_PROMPT:
-			chat_wakeup_writer(p);
-			ring_buffer_drain(rbuf, p->read_so_far);
-			break;
-
-		default:
-			ring_buffer_drain(rbuf, p->read_so_far);
-			break;
-		}
+		have_line(p, extract_line(p, rbuf));
 
 		len -= p->read_so_far;
 		wrap -= p->read_so_far;
@@ -908,16 +867,6 @@ static gboolean can_write_data(gpointer data)
 
 	if (bytes_written < towrite)
 		return TRUE;
-
-	/*
-	 * If we're expecting a short prompt, set the hint for all lines
-	 * sent to the modem except the last
-	 */
-	if ((cmd->flags & COMMAND_FLAG_EXPECT_SHORT_PROMPT) &&
-			chat->cmd_bytes_written < len &&
-			chat->syntax->set_hint)
-		chat->syntax->set_hint(chat->syntax,
-					G_AT_SYNTAX_EXPECT_SHORT_PROMPT);
 
 	/* Full command submitted, update timer */
 	if (chat->wakeup_timer)
@@ -1289,8 +1238,6 @@ static struct mot_chat *create_chat(GIOChannel *channel, GIOFlags flags,
 						g_free, at_notify_destroy);
 
 	g_at_io_set_read_handler(chat->io, new_bytes, chat);
-
-	chat->syntax = g_at_syntax_ref(syntax);
 
 	return chat;
 
