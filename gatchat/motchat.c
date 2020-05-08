@@ -1,6 +1,6 @@
 /*
  *
- *  AT chat library with GLib integration
+ *  MOTMDM chat library with GLib integration
  *
  *  Copyright (C) 2008-2011  Intel Corporation. All rights reserved.
  *
