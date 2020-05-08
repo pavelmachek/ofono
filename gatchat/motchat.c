@@ -466,7 +466,6 @@ static gboolean mot_chat_handle_command_response(struct mot_chat *p,
 							struct at_command *cmd,
 							char *line)
 {
-	int i;
 	GSList *l;
 
 	printf("command response: %s\n", line);
