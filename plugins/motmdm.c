@@ -80,8 +80,6 @@ struct motmdm_data {
 	int initialized;
 };
 
-const int use_usb = 0;
-
 static const char *none_prefix[] = { NULL };
 
 static void motmdm_debug(const char *str, void *user_data)
@@ -158,7 +156,6 @@ static void modem_initialize(struct ofono_modem *modem)
 	GHashTable *options;
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i;
-	int fd = 999;
 
 	DBG("");
 
@@ -177,14 +174,9 @@ static void modem_initialize(struct ofono_modem *modem)
 		g_hash_table_insert(options, "Local", "off");
 		g_hash_table_insert(options, "RtsCts", "off");
 
-		if (!use_usb) {
-			device = devices[i]; /* Not a tty device */
-			io = g_at_tty_open(device, options);
+		device = devices[i]; /* Not a tty device */
+		io = g_at_tty_open(device, options);
 
-		} else {
-			device = "/dev/ttyUSB4";
-			io = g_at_tty_open(device, options);
-		}
 		DBG("opening %s\n", device);
 
 		g_hash_table_destroy(options);
@@ -279,7 +271,7 @@ static int motmdm_enable(struct ofono_modem *modem)
 
 	DBG("sending scrn\n");
 	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
-	if (use_usb)
+	if (0)
 		g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000ATE0", NULL, NULL, modem, NULL);
 	DBG("sending cfun\n");
 	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
@@ -308,6 +300,7 @@ static int motmdm_disable(struct ofono_modem *modem)
 
 struct ofono_sms *sms_hack;
 
+#if 0
 static void motmdm_set_online(struct ofono_modem *modem, ofono_bool_t online,
 				ofono_modem_online_cb_t cb, void *user_data)
 {
@@ -320,6 +313,7 @@ static void motmdm_set_online(struct ofono_modem *modem, ofono_bool_t online,
 
 	g_free(cbd);
 }
+#endif
 
 static void motmdm_pre_sim(struct ofono_modem *modem)
 {
@@ -350,11 +344,11 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 
 static void motmdm_post_sim(struct ofono_modem *modem)
 {
+#if 0
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 
 	DBG("%p", modem);
 
-#if 0
 	ofono_ussd_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_forwarding_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
 	ofono_call_settings_create(modem, OFONO_VENDOR_MOTMDM, "atmodem", data->dlcs[VOICE_DLC]);
