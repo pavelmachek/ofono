@@ -302,8 +302,6 @@ static void motorola_answer(struct ofono_voicecall *vc,
 static void motorola_hangup(struct ofono_voicecall *vc,
 			ofono_voicecall_cb_t cb, void *data)
 {
-	struct voicecall_data *vd = ofono_voicecall_get_data(vc);
-
 	motorola_template("U0000ATH", vc, generic_cb, 0x3f, cb, data);
 }
 
