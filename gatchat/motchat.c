@@ -711,13 +711,10 @@ static void new_bytes(struct ring_buffer *rbuf, gpointer user_data)
 	unsigned int wrap = ring_buffer_len_no_wrap(rbuf);
 	unsigned char *buf = ring_buffer_read_ptr(rbuf, p->read_so_far);
 
-	GAtSyntaxResult result;
-
 	p->in_read_handler = TRUE;
 
 	while (p->suspended == FALSE && (p->read_so_far < len)) {
 		gsize rbytes = MIN(len - p->read_so_far, wrap - p->read_so_far);
-		result = G_AT_SYNTAX_RESULT_LINE;
 		printf("new bytes %d\n", rbytes);
 
 		buf += rbytes;
@@ -1200,15 +1197,11 @@ static gboolean node_compare_by_group(struct at_notify_node *node,
 	return FALSE;
 }
 
-static struct mot_chat *create_chat(GIOChannel *channel, GIOFlags flags,
-					GAtSyntax *syntax)
+static struct mot_chat *create_chat(GIOChannel *channel, GIOFlags flags)
 {
 	struct mot_chat *chat;
 
 	if (channel == NULL)
-		return NULL;
-
-	if (syntax == NULL)
 		return NULL;
 
 	chat = g_try_new0(struct mot_chat, 1);
@@ -1254,8 +1247,7 @@ error:
 	return NULL;
 }
 
-static GMotChat *g_mot_chat_new_common(GIOChannel *channel, GIOFlags flags,
-					GAtSyntax *syntax)
+static GMotChat *g_mot_chat_new_common(GIOChannel *channel, GIOFlags flags)
 {
 	GMotChat *chat;
 
@@ -1263,7 +1255,7 @@ static GMotChat *g_mot_chat_new_common(GIOChannel *channel, GIOFlags flags,
 	if (chat == NULL)
 		return NULL;
 
-	chat->parent = create_chat(channel, flags, syntax);
+	chat->parent = create_chat(channel, flags);
 	if (chat->parent == NULL) {
 		g_free(chat);
 		return NULL;
@@ -1275,14 +1267,14 @@ static GMotChat *g_mot_chat_new_common(GIOChannel *channel, GIOFlags flags,
 	return chat;
 }
 
-GMotChat *g_mot_chat_new(GIOChannel *channel, GAtSyntax *syntax)
+GMotChat *g_mot_chat_new(GIOChannel *channel)
 {
-	return g_mot_chat_new_common(channel, G_IO_FLAG_NONBLOCK, syntax);
+	return g_mot_chat_new_common(channel, G_IO_FLAG_NONBLOCK);
 }
 
-GMotChat *g_mot_chat_new_blocking(GIOChannel *channel, GAtSyntax *syntax)
+GMotChat *g_mot_chat_new_blocking(GIOChannel *channel)
 {
-	return g_mot_chat_new_common(channel, 0, syntax);
+	return g_mot_chat_new_common(channel, 0);
 }
 
 GMotChat *g_mot_chat_clone(GMotChat *clone)

@@ -152,7 +152,6 @@ static void scrn_cb(gboolean ok, GAtResult *result, gpointer user_data)
 
 static void modem_initialize(struct ofono_modem *modem)
 {
-	GAtSyntax *syntax;
 	GMotChat *chat;
 	const char *device;
 	GIOChannel *io;
@@ -195,9 +194,7 @@ static void modem_initialize(struct ofono_modem *modem)
 
 		/* 
 		 */
-		syntax = g_at_syntax_new_gsm_permissive();
-		chat = g_mot_chat_new(io, syntax);
-		g_at_syntax_unref(syntax);
+		chat = g_mot_chat_new(io);
 		g_io_channel_unref(io);
 
 		if (chat == NULL)
