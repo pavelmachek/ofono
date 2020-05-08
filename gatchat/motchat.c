@@ -481,7 +481,6 @@ static gboolean mot_chat_handle_command_response(struct mot_chat *p,
 {
 	int i;
 	int size = sizeof(terminator_table) / sizeof(struct terminator_info);
-	int hint;
 	GSList *l;
 
 	printf("command response: %s\n", line);
@@ -595,6 +594,7 @@ done:
 	g_free(str);
 }
 
+#if 0
 static void have_notify_pdu(struct mot_chat *p, char *pdu, GAtResult *result)
 {
 	GHashTableIter iter;
@@ -663,6 +663,7 @@ error:
 	if (pdu)
 		g_free(pdu);
 }
+#endif
 
 static char *extract_line(struct mot_chat *p, struct ring_buffer *rbuf)
 {
