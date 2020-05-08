@@ -307,7 +307,7 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 	struct ofono_sms *sms = user_data;
 
 	GAtResultIter iter;
-	const char *line;
+	const char *line, *pdu;
 
 	g_at_result_iter_init(&iter, result);
 	/* g_at_result_iter_next_hexstring ? */
@@ -315,9 +315,17 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 		return;
 
 	line = g_at_result_iter_raw_line(&iter);
-	DBG("insms notify: %s\n", line);
+	DBG("insms notify:\n %s\n", line);
 
-	got_hex_pdu(sms, line);
+	pdu = strchr(line, '\r');
+	if (!pdu) {
+		DBG("Do not have pdu?!\n");
+		return;
+	}
+	pdu += 1;
+	DBG("insms notify pdu:\n %s\n", pdu);
+
+	got_hex_pdu(sms, pdu);
 
 	if (1)
 		motorola_ack_delivery(sms);
@@ -339,8 +347,8 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 
 	ofono_sms_set_data(sms, data);
 
-	g_mot_chat_register(data->chat, "", insms_notify, FALSE, sms, NULL);
-	g_mot_chat_register(data->send_chat, "+GCMGS", motorola_cmgs_cb, FALSE, sms, NULL);
+	g_mot_chat_register(data->chat, "U0000~+GCMT", insms_notify, FALSE, sms, NULL);
+	g_mot_chat_register(data->send_chat, "U0000+GCMGS", motorola_cmgs_cb, FALSE, sms, NULL);
 
 #if 0
 	/* Tony says this acks sms, I don't see the effect */
