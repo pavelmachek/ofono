@@ -32,6 +32,8 @@
 #include <ofono/history.h>
 #include <ofono/types.h>
 
+#include <stdio.h>
+
 #include "common.h"
 
 static int mail_history_probe(struct ofono_history_context *context)
@@ -45,17 +47,42 @@ static void mail_history_remove(struct ofono_history_context *context)
 	ofono_debug("Example History Remove for modem: %p", context->modem);
 }
 
+static FILE *mail_history_open(struct ofono_history_context *context)
+{
+	const char *mbox = "/tmp/sms.mbox";
+	FILE *fp = fopen(mbox, "a");
+	return fp;
+}
+
+static int mail_history_close(struct ofono_history_context *context, FILE *fp)
+{
+	fclose(fp);
+	return 0;
+}
+
+static FILE *mail_history_header(struct ofono_history_context *context)
+{
+	FILE *fp = mail_history_open(context);
+	
+	fprintf(fp, "From ofono-event\n");
+	return 0;
+}
+
 static void mail_history_call_ended(struct ofono_history_context *context,
 					const struct ofono_call *call,
-					time_t start, time_t end)
+n					time_t start, time_t end)
 {
 	const char *from = "Unknown";
+	const char *name = "";
 	char buf[128];
+	FILE *fp;
 
 	ofono_debug("Call Ended on modem: %p", context->modem);
 
 	if (call->type != 0)
 		return;
+
+	fp = mail_history_header(context);
 
 	ofono_debug("Voice Call, %s",
 			call->direction ? "Incoming" : "Outgoing");
@@ -63,13 +90,18 @@ static void mail_history_call_ended(struct ofono_history_context *context,
 	if (call->clip_validity == 0)
 		from = phone_number_to_string(&call->phone_number);
 
-	if (call->direction == 0)
-		ofono_debug("To: %s", from);
-	else
-		ofono_debug("From: %s", from);
-
 	if (call->cnap_validity == 0)
-		ofono_debug("Name from Network: %s\n", call->name);
+		name = call->name;
+
+	if (call->direction == 0) {
+		fprintf(fp, "To: %s <%s@pstn>\n", name, from);
+		fprintf(fp, "Type: outgoing call ended\n");
+
+	} else {
+		fprintf(fp, "From: %s <%s@pstn>\n", name, from);
+		fprintf(fp, "Type: outgoing call ended\n");
+	}
+
 
 	strftime(buf, 127, "%Y-%m-%dT%H:%M:%S%z", localtime(&start));
 	buf[127] = '\0';
