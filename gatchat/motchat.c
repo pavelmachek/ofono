@@ -676,7 +676,8 @@ static char *extract_line(struct mot_chat *p, struct ring_buffer *rbuf)
 	char *line;
 
 	while (pos < p->read_so_far) {
-		if (in_string == FALSE && (*buf == '\r' || *buf == '\n')) {
+	  /* FIXME: is the in_string handling neccessary? */
+		if (in_string == FALSE && *buf == '\n') {
 			if (!line_length)
 				strip_front += 1;
 			else
