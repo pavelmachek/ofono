@@ -196,7 +196,6 @@ struct mot_chat {
 	gdouble inactivity_time;		/* Period of inactivity */
 	guint wakeup_timeout;			/* How long to wait for resp */
 	GTimer *wakeup_timer;			/* Keep track of elapsed time */
-	GAtSyntax *syntax;
 	gboolean destroyed;			/* Re-entrancy guard */
 	gboolean in_read_handler;		/* Re-entrancy guard */
 	gboolean in_notify;
