@@ -2065,6 +2065,7 @@ static void at_creg_test_cb(gboolean ok, GAtResult *result, gpointer user_data)
 		return;
 	}
 	DBG("motmdm -- creg test okay?!");
+	ofono_netreg_register(netreg);
 	return;
 }
 
