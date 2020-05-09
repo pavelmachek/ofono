@@ -155,6 +155,7 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 
 static void at_cnma_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
+	DBG("at+cnma: we really need this");
 	if (!ok)
 		ofono_error("CNMA acknowledgement failed: "
 				"Further SMS reception is not guaranteed");
@@ -166,7 +167,7 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	char buf[256];
 
 	DBG("");
-	  if (1) {
+	  if (0) {
 		/* Should be a safe fallback, documented, and works for me.
 		   Does not work for Tony. */
 		/* No, it does not work. CNMA=0 does not really acknowledge
@@ -176,10 +177,38 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	  	/* SMSes seem to be acknowledged, but then they
 		   somehow reappear later? */
 		/* Neither GCNMA=1 nor GCNMA=0 acknowledges the message, it is delivered over and over. */
-		snprintf(buf, sizeof(buf), "U0000AT+GCNMA=1");
+		snprintf(buf, sizeof(buf), "U0000AT+GCNMA=0");
+		/* GCNMA=0 on _outsms_ may be doing the trick? */
 	  }
 
-	g_mot_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
+	  if (0) {
+		  g_mot_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
+	  } else {
+		  strcat(buf, "\r");
+		  g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
+		  g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+		  g_at_io_write(data->chat->parent->io, buf, strlen(buf));
+		  g_io_channel_flush(data->chat->parent->io->channel, NULL);
+		  snprintf(buf, sizeof(buf), "U0000AT+FOO");
+		  strcat(buf, "\r");
+		  g_at_io_write(data->chat->parent->io, buf, strlen(buf));
+		  g_io_channel_flush(data->chat->parent->io->channel, NULL);
+		  g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
+		  g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+		  snprintf(buf, sizeof(buf), "U0000AT+CNMA=0");
+		  strcat(buf, "\r");
+		  g_at_io_write(data->chat->parent->io, buf, strlen(buf));
+		  g_io_channel_flush(data->chat->parent->io->channel, NULL);
+		  g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
+		  g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+		  snprintf(buf, sizeof(buf), "U0000AT+BAR");
+		  strcat(buf, "\r");
+		  g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
+		  g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+		  g_at_io_write(data->chat->parent->io, buf, strlen(buf));
+		  g_io_channel_flush(data->chat->parent->io->channel, NULL);
+
+	  }
 }
 
 #if 0
@@ -249,8 +278,9 @@ err:
 	ofono_error("Unable to parse CMT notification");
 }
 #endif
-static void construct_ack_pdu(struct sms_data *d)
+static void construct_ack_pdu(struct ofono_sms *sms)
 {
+	struct sms_data *data = ofono_sms_get_data(sms);
 	struct sms ackpdu;
 	unsigned char pdu[164];
 	int len;
@@ -268,14 +298,8 @@ static void construct_ack_pdu(struct sms_data *d)
 	/* Constructing an <ackpdu> according to 27.005 Section 4.6 */
 	if (len != tpdu_len)
 		goto err;
-
-	d->cnma_ack_pdu = l_util_hexstring(pdu, tpdu_len);
-	if (d->cnma_ack_pdu == NULL)
-		goto err;
-
-	printf("Have ack PDU: %s\n", d->cnma_ack_pdu);
-
-	d->cnma_ack_pdu_len = tpdu_len;
+	DBG("Construct ack pdu: len %d", len);
+	motorola_send_pdu(sms, pdu, len);
 	return;
 
 err:
@@ -305,12 +329,12 @@ static void got_hex_pdu(struct ofono_sms *sms, const char *hexpdu)
 	  printf("tpdu_len: %d\n", tpdu_len);
 	/* Decode pdu and notify about new SMS status report */
 	  decode_hex_own_buf(hexpdu, -1, &pdu_len, 0, pdu);
-	  tpdu_len = pdu_len - 8; /* FIXME: this is not correct */
+	  tpdu_len = pdu_len - 8; /* FIXME: this is not correct. Should be -pdu[0]-1. Should also shift start?  */
 	DBG("Got new Status-Report PDU via CDS: %s, %d", hexpdu, tpdu_len);
 	  ofono_sms_deliver_notify(sms, pdu, pdu_len, tpdu_len);
 	}
-#if 1
-	  construct_ack_pdu(ofono_sms_get_data(sms));
+#if 0
+	  construct_ack_pdu(sms);
 #endif
 }
 
@@ -339,6 +363,7 @@ static void insms_notify(GAtResult *result, gpointer user_data)
 
 	got_hex_pdu(sms, pdu);
 
+	DBG("Acknowledging sms delivery\n");
 	if (1)
 		motorola_ack_delivery(sms);
 }
