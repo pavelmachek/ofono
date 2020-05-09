@@ -177,8 +177,9 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	  	/* SMSes seem to be acknowledged, but then they
 		   somehow reappear later? */
 		/* Neither GCNMA=1 nor GCNMA=0 acknowledges the message, it is delivered over and over. */
-		snprintf(buf, sizeof(buf), "U0000AT+GCNMA=0");
-		/* GCNMA=0 on _outsms_ may be doing the trick? */
+		snprintf(buf, sizeof(buf), "U0000AT+GCNMA=1");
+		/* GCNMA=1 on _outsms_ may be doing the trick?
+		   Tony does GCNMA on insms. (and suggest CNMA=0,0; sometimes) */
 	  }
 
 	  if (0) {
@@ -201,7 +202,7 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 		  g_io_channel_flush(data->chat->parent->io->channel, NULL);
 		  g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
 		  g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
-		  snprintf(buf, sizeof(buf), "U0000AT+BAR");
+		  snprintf(buf, sizeof(buf), "U0000AT+CNMA=0,0");
 		  strcat(buf, "\r");
 		  g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
 		  g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
