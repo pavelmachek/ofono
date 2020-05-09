@@ -97,19 +97,14 @@ err:
 	CALLBACK_WITH_FAILURE(cb, -1, cbd->data);
 }
 
-static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
-			int pdu_len, int tpdu_len, int mms,
-			ofono_sms_submit_cb_t cb, void *user_data)
+static void motorola_send_pdu(struct ofono_sms *sms, const unsigned char *pdu,
+			      int pdu_len)
 {
 	struct sms_data *data = ofono_sms_get_data(sms);
-	struct cb_data *cbd = cb_data_new(cb, user_data);
 	char buf[512], buf_pdu[512];
 
 	DBG("");
 
-	if (mms) {
-	  DBG("mms likely not supported");
-	}
 	/*                          AT+GCMGS */
 	snprintf(buf, sizeof(buf), "U0000AT+GCMGS=\r");
 	DBG("CMGS intro is %s", buf);
@@ -130,9 +125,24 @@ static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
 	g_at_io_write(data->send_chat->parent->io, buf_pdu+1, strlen(buf_pdu)-1);
 	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
 #endif
+	return;
+}
+
+
+static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
+			int pdu_len, int tpdu_len, int mms,
+			ofono_sms_submit_cb_t cb, void *user_data)
+{
+	struct sms_data *data = ofono_sms_get_data(sms);
+	struct cb_data *cbd = cb_data_new(cb, user_data);
+
+	if (mms) {
+	  DBG("mms likely not supported");
+	}
+
+	motorola_send_pdu(sms, pdu, pdu_len);
 	data->cbd = cbd;
 	return;
-	  
 /*
 	if (g_mot_chat_send(data->send_chat, buf, cmgs_prefix,
 				motorola_cmgs_cb, cbd, g_free) > 0)
@@ -156,13 +166,16 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	char buf[256];
 
 	DBG("");
-	  if (0) {
+	  if (1) {
 		/* Should be a safe fallback, documented, and works for me.
 		   Does not work for Tony. */
+		/* No, it does not work. CNMA=0 does not really acknowledge
+		   the messages, they come back later */
 		snprintf(buf, sizeof(buf), "U0000AT+CNMA=0");
 	  } else {
 	  	/* SMSes seem to be acknowledged, but then they
 		   somehow reappear later? */
+		/* Neither GCNMA=1 nor GCNMA=0 acknowledges the message, it is delivered over and over. */
 		snprintf(buf, sizeof(buf), "U0000AT+GCNMA=1");
 	  }
 
@@ -235,7 +248,7 @@ static void motorola_cmt_notify(GAtResult *result, gpointer user_data)
 err:
 	ofono_error("Unable to parse CMT notification");
 }
-
+#endif
 static void construct_ack_pdu(struct sms_data *d)
 {
 	struct sms ackpdu;
@@ -268,7 +281,6 @@ static void construct_ack_pdu(struct sms_data *d)
 err:
 	ofono_error("Unable to construct Deliver ACK PDU");
 }
-#endif
 
 /*  */
 
@@ -297,7 +309,7 @@ static void got_hex_pdu(struct ofono_sms *sms, const char *hexpdu)
 	DBG("Got new Status-Report PDU via CDS: %s, %d", hexpdu, tpdu_len);
 	  ofono_sms_deliver_notify(sms, pdu, pdu_len, tpdu_len);
 	}
-#if 0
+#if 1
 	  construct_ack_pdu(ofono_sms_get_data(sms));
 #endif
 }
