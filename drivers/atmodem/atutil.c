@@ -65,9 +65,6 @@ void decode_at_error(struct ofono_error *error, const char *final)
 	} else if (g_str_has_prefix(final, "+CME ERROR:")) {
 		error->type = OFONO_ERROR_TYPE_CME;
 		error->error = strtol(&final[11], NULL, 0);
-	} else if (g_str_has_suffix(final, ":OK")) {
-		error->type = OFONO_ERROR_TYPE_NO_ERROR;
-		error->error = 0;
 	} else {
 		error->type = OFONO_ERROR_TYPE_FAILURE;
 		error->error = 0;
@@ -271,29 +268,19 @@ gboolean at_util_parse_reg(GAtResult *result, const char *prefix,
 	int l = -1, c = -1, t = -1;
 	const char *str;
 
-	DBG("1");
 	g_at_result_iter_init(&iter, result);
-
-	DBG("2");	
 
 	while (g_at_result_iter_next(&iter, prefix)) {
 		gboolean r;
 
 		g_at_result_iter_next_number(&iter, &m);
 
-		DBG("3");		
-
-		int foo;
-		g_at_result_iter_next_number(&iter, &foo);
-
-		DBG("have mode?");		
 		/* Sometimes we get an unsolicited CREG/CGREG here, skip it */
 		switch (vendor) {
 		case OFONO_VENDOR_ZTE:
 		case OFONO_VENDOR_HUAWEI:
 		case OFONO_VENDOR_NOVATEL:
 		case OFONO_VENDOR_SPEEDUP:
-		case OFONO_VENDOR_GENERIC:
 			r = g_at_result_iter_next_unquoted_string(&iter, &str);
 
 			if (r == FALSE || strlen(str) != 1)
@@ -319,7 +306,6 @@ gboolean at_util_parse_reg(GAtResult *result, const char *prefix,
 		case OFONO_VENDOR_HUAWEI:
 		case OFONO_VENDOR_NOVATEL:
 		case OFONO_VENDOR_SPEEDUP:
-		case OFONO_VENDOR_GENERIC:
 			r = g_at_result_iter_next_unquoted_string(&iter, &str);
 
 			if (r == TRUE)
@@ -346,14 +332,10 @@ gboolean at_util_parse_reg(GAtResult *result, const char *prefix,
 			else
 				goto out;
 		}
-		DBG("");
 
 		g_at_result_iter_next_number(&iter, &t);
 
 out:
-		DBG("parsed ok");
-
-		
 		if (mode)
 			*mode = m;
 
