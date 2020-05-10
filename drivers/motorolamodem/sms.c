@@ -188,6 +188,7 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 		  strcat(buf, "\r");
 		  g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
 		  g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+#if 0
 		  g_at_io_write(data->chat->parent->io, buf, strlen(buf));
 		  g_io_channel_flush(data->chat->parent->io->channel, NULL);
 		  snprintf(buf, sizeof(buf), "U0000AT+FOO");
@@ -208,7 +209,7 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 		  g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
 		  g_at_io_write(data->chat->parent->io, buf, strlen(buf));
 		  g_io_channel_flush(data->chat->parent->io->channel, NULL);
-
+#endif
 	  }
 }
 
