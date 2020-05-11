@@ -1153,9 +1153,10 @@ static void rssi_notify(GAtResult *result, gpointer user_data)
 	int strength;
 
 	/* HERE */
+	DBG();
 	g_at_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "U0000~+RSSI=~"))
+	if (!g_at_result_iter_next(&iter, "U0000~+RSSI="))
 		return;
 
 	if (!g_at_result_iter_next_number(&iter, &strength))
@@ -2198,7 +2199,7 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 
 
 	g_mot_chat_register(nd->chat, "U0000~+CREG=", creg_notify_debug, FALSE, nd, NULL);
-	g_mot_chat_register(nd->chat, "U0000~+RSSI=", rssi_notify_debug, FALSE, nd, NULL);
+	g_mot_chat_register(nd->chat, "U0000~+RSSI=", rssi_notify, FALSE, nd, NULL);
 	
 	g_mot_chat_send(nd->chat, "U0000AT+CREG=?", creg_prefix,
 			at_creg_test_cb, netreg, NULL);
