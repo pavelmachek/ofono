@@ -100,29 +100,15 @@ gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
 #endif
 	DBG("Prefix: %s", prefix);
 
-	while (g_at_result_iter_next(&iter, prefix)) {
+	if (g_at_result_iter_next(&iter, prefix)) {
 		gboolean r;
+		g_at_result_iter_next_number(&iter, &s);
+
+		DBG("2a");
 
 		g_at_result_iter_next_number(&iter, &m);
 
 		DBG("3");		
-
-		int foo;
-		g_at_result_iter_next_number(&iter, &foo);
-
-		DBG("have mode?");		
-			r = g_at_result_iter_next_unquoted_string(&iter, &str);
-
-			if (r == FALSE || strlen(str) != 1)
-				continue;
-
-			s = strtol(str, NULL, 10);
-
-			break;
-
-		/* Some firmware will report bogus lac/ci when unregistered */
-		if (s != 1 && s != 5)
-			goto out;
 
 			r = g_at_result_iter_next_unquoted_string(&iter, &str);
 
@@ -284,6 +270,8 @@ static void creg_notify_variant(GAtResult *result, gpointer user_data, int varia
 	tq->ci = ci;
 	tq->netreg = netreg;
 
+	DBG("Doing tech query?");
+
 	switch (nd->vendor) {
 	}
 
@@ -293,7 +281,9 @@ static void creg_notify_variant(GAtResult *result, gpointer user_data, int varia
 		tech = nd->tech;
 
 notify:
+	DBG("Notifying ofono core");
 	ofono_netreg_status_notify(netreg, status, lac, ci, tech);
+	DBG("All done");	
 }
 
 static void creg_notify(GAtResult *result, gpointer user_data)
@@ -408,9 +398,9 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 	DBG("Probing creg");
 
 
-	g_mot_chat_register(nd->chat, "U0000~+CREG=", creg_notify, FALSE, nd, NULL);
-	g_mot_chat_register(nd->chat, "U0000+CREG=", creg_notify_hack, FALSE, nd, NULL);
-	g_mot_chat_register(nd->chat, "U0000~+RSSI=", rssi_notify, FALSE, nd, NULL);
+	g_mot_chat_register(nd->chat, "U0000~+CREG=", creg_notify, FALSE, netreg, NULL);
+	g_mot_chat_register(nd->chat, "U0000+CREG=", creg_notify_hack, FALSE, netreg, NULL);
+	g_mot_chat_register(nd->chat, "U0000~+RSSI=", rssi_notify, FALSE, netreg, NULL);
 	
 	g_mot_chat_send(nd->chat, "U0000AT+CREG=?", creg_prefix,
 			at_creg_test_cb, netreg, NULL);
