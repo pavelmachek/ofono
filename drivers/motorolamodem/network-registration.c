@@ -54,6 +54,13 @@ static const char *smoni_prefix[] = { "^SMONI:", NULL };
 static const char *zpas_prefix[] = { "+ZPAS:", NULL };
 static const char *option_tech_prefix[] = { "_OCTI:", "_OUWCTI:", NULL };
 
+/*
+    sudo su
+    cat /dev/gsmtty1 &
+    printf "U0000AT+CREG?\r" > /dev/gsmtty1
+    U0000+CREG=1,11,04CC,0E117D42,0,0,0,0,0,0
+*/
+
 struct netreg_data {
 	GMotChat *chat;
 	char mcc[OFONO_MAX_MCC_LENGTH + 1];

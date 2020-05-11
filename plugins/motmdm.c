@@ -262,7 +262,6 @@ static int motmdm_enable(struct ofono_modem *modem)
 	modem_verify(modem);
 	DBG("modem verified\n");
 
-	/* AT+SCRN=0 to disable notifications. */
 	/* Test parsing of incoming stuff */
 
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
@@ -270,6 +269,12 @@ static int motmdm_enable(struct ofono_modem *modem)
 				FALSE, modem, NULL);
 
 	DBG("sending scrn\n");
+
+	/* AT+SCRN=0 to disable notifications.
+	   Controls notifications such as:
+	   U0005~+CREG=1,11,04CC,0E117D42,0,0,0,0,0,0
+	   U0006~+RSSI=0,25,99,99,0,0,0
+	*/	
 	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
 	if (0)
 		g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000ATE0", NULL, NULL, modem, NULL);
@@ -285,6 +290,8 @@ static int motmdm_disable(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i;
+
+	/* FIXME: we should probably turn the modem off */
 
 	DBG("%p", modem);
 
