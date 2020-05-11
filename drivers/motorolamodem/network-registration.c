@@ -205,6 +205,7 @@ static void at_registration_status(struct ofono_netreg *netreg,
 	cbd->user = nd;
 
 	DBG("Sending creg");
+	return;
 	if (g_mot_chat_send(nd->chat, "U0000AT+CREG?", creg_prefix,
 			   at_creg_cb, cbd, g_free) > 0) {
 		DBG("Creg sent ok ok");
