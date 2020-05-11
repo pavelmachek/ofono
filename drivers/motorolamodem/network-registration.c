@@ -223,7 +223,9 @@ static void at_creg_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	GAtResultIter iter;
 	const char *str;
 
-#if 1
+	/* HERE */
+
+#if 0
 	DBG("got creg");
 	decode_at_error(&error, g_at_result_final_response(result));
 
@@ -331,7 +333,7 @@ static void at_registration_status(struct ofono_netreg *netreg,
 	cbd->user = nd;
 
 	DBG("Sending creg");
-	if (g_at_chat_send(nd->chat, "AT+CREG?", creg_prefix,
+	if (g_at_chat_send(nd->chat, "U0000AT+CREG?", creg_prefix,
 			   at_creg_cb, cbd, g_free) > 0) {
 		DBG("Creg sent ok ok");
 		return;
@@ -1097,6 +1099,7 @@ static void huawei_rssi_notify(GAtResult *result, gpointer user_data)
 	GAtResultIter iter;
 	int strength;
 
+	/* HERE */
 	g_at_result_iter_init(&iter, result);
 
 	if (!g_at_result_iter_next(&iter, "^RSSI:"))
@@ -1529,6 +1532,7 @@ static void creg_notify(GAtResult *result, gpointer user_data)
 	struct netreg_data *nd = ofono_netreg_get_data(netreg);
 	struct tech_query *tq;
 
+	/* HERE */
 	DBG("");
 
 	if (at_util_parse_reg_unsolicited(result, "+CREG:", &status,
@@ -2124,7 +2128,7 @@ static const struct ofono_netreg_driver driver = {
 	.name				= "motorolamodem",
 	.probe				= at_netreg_probe,
 	.remove				= at_netreg_remove,
-//	.registration_status		= at_registration_status,
+	.registration_status		= at_registration_status,
 //	.current_operator		= at_current_operator,
 //	.list_operators			= at_list_operators,
 //	.register_auto			= at_register_auto,
