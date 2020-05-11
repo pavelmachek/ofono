@@ -206,7 +206,7 @@ static void at_registration_status(struct ofono_netreg *netreg,
 	cbd->user = nd;
 
 	DBG("Sending creg");
-	if (g_at_chat_send(nd->chat, "U0000AT+CREG?", creg_prefix,
+	if (g_mot_chat_send(nd->chat, "U0000AT+CREG?", creg_prefix,
 			   at_creg_cb, cbd, g_free) > 0) {
 		DBG("Creg sent ok ok");
 		return;
@@ -295,7 +295,7 @@ static void at_creg_test_cb(gboolean ok, GAtResult *result, gpointer user_data)
 
 	if (!ok) {
 		DBG("motmdm -- failure is expected");
-		//g_at_chat_register(nd->chat, "+CREG=",
+		//g_mot_chat_register(nd->chat, "+CREG=",
 		//		   creg_notify, FALSE, netreg, NULL);
 		ofono_netreg_register(netreg);
 		return;
@@ -348,7 +348,7 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 
 	nd = g_new0(struct netreg_data, 1);
 
-	nd->chat = g_at_chat_clone(chat);
+	nd->chat = g_mot_chat_clone(chat);
 	nd->vendor = vendor;
 	nd->tech = -1;
 	nd->time.sec = -1;
@@ -382,7 +382,7 @@ static void at_netreg_remove(struct ofono_netreg *netreg)
 
 	ofono_netreg_set_data(netreg, NULL);
 
-	g_at_chat_unref(nd->chat);
+	g_mot_chat_unref(nd->chat);
 	g_free(nd);
 }
 
