@@ -84,6 +84,11 @@ gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
 	DBG("1");
 	g_at_result_iter_init(&iter, result);
 
+	DBG("1a");
+#if 0
+	if (!g_at_result_iter_next(&iter, ""))
+		return;
+
 	DBG("2");
 	DBG("Data: %s", iter.l->data);
 
@@ -92,7 +97,8 @@ gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
 		line = g_at_result_iter_raw_line(&iter);
 		DBG("parse reg:\n %s\n", line);
 	}
-	
+#endif
+	DBG("Prefix: %s", prefix);
 
 	while (g_at_result_iter_next(&iter, prefix)) {
 		gboolean r;
@@ -248,7 +254,7 @@ static void rssi_notify(GAtResult *result, gpointer user_data)
 				at_util_convert_signal_strength(strength));
 }
 
-static void creg_notify(GAtResult *result, gpointer user_data)
+static void creg_notify_variant(GAtResult *result, gpointer user_data, int variant)
 {
 	struct ofono_netreg *netreg = user_data;
 	int mode;
@@ -259,7 +265,8 @@ static void creg_notify(GAtResult *result, gpointer user_data)
 	/* HERE */
 	DBG("");
 
-	if (mot_util_parse_reg(result, "U0000~+CREG=", &mode, &status,
+	char *s = !variant ? "U0000~+CREG=" : "U0000+CREG=";
+	if (mot_util_parse_reg(result, s, &mode, &status,
 				&lac, &ci, &tech, 0) == FALSE)
 		return;
 
@@ -287,6 +294,20 @@ static void creg_notify(GAtResult *result, gpointer user_data)
 
 notify:
 	ofono_netreg_status_notify(netreg, status, lac, ci, tech);
+}
+
+static void creg_notify(GAtResult *result, gpointer user_data)
+{
+	creg_notify_variant(result, user_data, 0);
+}
+
+/* FIXME: This is quite a hack. +CREG= is really response to our
+ * CREG?, but core does not pass that to us, so we lie to it, and
+ * handle it as unsolicited message.
+ */
+static void creg_notify_hack(GAtResult *result, gpointer user_data)
+{
+	creg_notify_variant(result, user_data, 1);
 }
 
 static void at_creg_test_cb(gboolean ok, GAtResult *result, gpointer user_data)
@@ -388,7 +409,7 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 
 
 	g_mot_chat_register(nd->chat, "U0000~+CREG=", creg_notify, FALSE, nd, NULL);
-	g_mot_chat_register(nd->chat, "U0000+CREG=", creg_result_debug, FALSE, nd, NULL);
+	g_mot_chat_register(nd->chat, "U0000+CREG=", creg_notify_hack, FALSE, nd, NULL);
 	g_mot_chat_register(nd->chat, "U0000~+RSSI=", rssi_notify, FALSE, nd, NULL);
 	
 	g_mot_chat_send(nd->chat, "U0000AT+CREG=?", creg_prefix,
