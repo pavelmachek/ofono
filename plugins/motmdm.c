@@ -275,7 +275,7 @@ static int motmdm_enable(struct ofono_modem *modem)
 	   U0005~+CREG=1,11,04CC,0E117D42,0,0,0,0,0,0
 	   U0006~+RSSI=0,25,99,99,0,0,0
 	*/	
-	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=0", none_prefix, scrn_cb, modem, NULL);
+	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+SCRN=1", none_prefix, scrn_cb, modem, NULL);
 	if (0)
 		g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000ATE0", NULL, NULL, modem, NULL);
 	DBG("sending cfun\n");

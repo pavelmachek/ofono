@@ -213,72 +213,124 @@ static int gemalto_parse_tech(GAtResult *result)
 	return tech;
 }
 #endif
+gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
+				int *mode, int *status,
+				int *lac, int *ci, int *tech,
+				unsigned int vendor)
+{
+	GAtResultIter iter;
+	int m, s;
+	int l = -1, c = -1, t = -1;
+	const char *str;
+
+	DBG("1");
+	g_at_result_iter_init(&iter, result);
+
+	DBG("2");
+	DBG("Data: %s", iter.l->data);
+
+	while (g_at_result_iter_next(&iter, prefix)) {
+		gboolean r;
+
+		g_at_result_iter_next_number(&iter, &m);
+
+		DBG("3");		
+
+		int foo;
+		g_at_result_iter_next_number(&iter, &foo);
+
+		DBG("have mode?");		
+			r = g_at_result_iter_next_unquoted_string(&iter, &str);
+
+			if (r == FALSE || strlen(str) != 1)
+				continue;
+
+			s = strtol(str, NULL, 10);
+
+			break;
+
+		/* Some firmware will report bogus lac/ci when unregistered */
+		if (s != 1 && s != 5)
+			goto out;
+
+			r = g_at_result_iter_next_unquoted_string(&iter, &str);
+
+			if (r == TRUE)
+				l = strtol(str, NULL, 16);
+			else
+				goto out;
+
+			r = g_at_result_iter_next_unquoted_string(&iter, &str);
+
+			if (r == TRUE)
+				c = strtol(str, NULL, 16);
+			else
+				goto out;
+
+		DBG("parsed ok");
+
+		g_at_result_iter_next_number(&iter, &t);
+
+out:
+		DBG("parsed ok or not?");
+
+		
+		if (mode)
+			*mode = m;
+
+		if (status)
+			*status = s;
+
+		if (lac)
+			*lac = l;
+
+		if (ci)
+			*ci = c;
+
+		if (tech)
+			*tech = t;
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+	
+
 static void at_creg_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
 	struct cb_data *cbd = user_data;
 	ofono_netreg_status_cb_t cb = cbd->cb;
 	int status, lac, ci, tech;
 	struct ofono_error error;
-	struct netreg_data *nd = cbd->user;
-	GAtResultIter iter;
-	const char *str;
+	struct at_netreg_data *nd = cbd->user;
 
-	/* HERE */
-
-#if 0
-	DBG("got creg");
+	DBG("creg_cb");
+#if 1
+	/* FIXME: can't use decode_at_error; it is broken */
 	decode_at_error(&error, g_at_result_final_response(result));
 
 	if (!ok) {
+		DBG("creg_cb: not okay");
 		cb(&error, -1, -1, -1, -1, cbd->data);
 		return;
 	}
+	DBG("creg_cb: okay");
 #endif
 
-	DBG("iter init");
-	g_at_result_iter_init(&iter, result);
-	DBG("buf: %s, %d", iter.buf, iter.line_pos);
-
-	DBG("Data: %s", iter.l->data);
-	if (!iter.l->data) {
-		DBG("have no data aborting");
+	if (mot_util_parse_reg(result, "U0000+CREG=", NULL, &status,
+				&lac, &ci, &tech, 0) == FALSE) {
+		CALLBACK_WITH_FAILURE(cb, -1, -1, -1, -1, cbd->data);
 		return;
 	}
 
-	if (g_at_result_iter_next(&iter, "")) {
-		DBG("Don't have +creg");
-		return;
+	DBG("mot parse : LAC: %x CI: %x: tech: %d", lac, ci, tech);
+
+	if ((status == 1 || status == 5) && (tech == -1)) {
+		DBG("FIXME: what tech?");
+		
+		tech = 0;
 	}
-
-	DBG("Data: %s", iter.l->data);
-	
-	if (g_at_result_iter_next_unquoted_string(&iter, &str)) {
-		DBG("no string");
-		return;
-	}
-	DBG("got string");
-	DBG("got string: %s", str);
-
-	DBG("iter get number");
-	if (!g_at_result_iter_next_number(&iter, &status))
-		return;
-
-	DBG("iter got number");
-	DBG("Status: %d ", status);
-
-	if (!g_at_result_iter_next(&iter, "+CREG=")) {
-		DBG("Don't see CREG");
-		return;
-	}
-
-		DBG("Faking success");
-		status = 1;
-		lac = 0x1234;
-		ci = 0xabcd;
-		tech = 1;
-
-	if ((status == 1 || status == 5) && (tech == -1))
-		tech = nd->tech;
 
 	/* 6-10 is EUTRAN, with 8 being emergency bearer case */
 	if (status > 5 && tech == -1)
@@ -1092,8 +1144,9 @@ static void cind_cb(gboolean ok, GAtResult *result, gpointer user_data)
 
 	cb(&error, strength, cbd->data);
 }
+#endif
 
-static void huawei_rssi_notify(GAtResult *result, gpointer user_data)
+static void rssi_notify(GAtResult *result, gpointer user_data)
 {
 	struct ofono_netreg *netreg = user_data;
 	GAtResultIter iter;
@@ -1102,16 +1155,21 @@ static void huawei_rssi_notify(GAtResult *result, gpointer user_data)
 	/* HERE */
 	g_at_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "^RSSI:"))
+	if (!g_at_result_iter_next(&iter, "U0000~+RSSI=~"))
 		return;
 
 	if (!g_at_result_iter_next_number(&iter, &strength))
 		return;
 
+	if (!g_at_result_iter_next_number(&iter, &strength))
+		return;
+
+	DBG("have strength!");
 	ofono_netreg_strength_notify(netreg,
 				at_util_convert_signal_strength(strength));
 }
 
+#if 0
 static void huawei_mode_notify(GAtResult *result, gpointer user_data)
 {
 	struct ofono_netreg *netreg = user_data;
@@ -2080,6 +2138,39 @@ static void at_creg_test_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	return;
 }
 
+static void creg_notify_debug(GAtResult *result, gpointer user_data)
+{
+	struct netreg_data *nd = user_data;
+
+	GAtResultIter iter;
+	const char *line, *pdu;
+
+	g_at_result_iter_init(&iter, result);
+	/* g_at_result_iter_next_hexstring ? */
+	if (!g_at_result_iter_next(&iter, ""))
+		return;
+
+	line = g_at_result_iter_raw_line(&iter);
+	DBG("creg notify:\n %s\n", line);
+}
+
+static void rssi_notify_debug(GAtResult *result, gpointer user_data)
+{
+	struct netreg_data *nd = user_data;
+
+	GAtResultIter iter;
+	const char *line, *pdu;
+
+	g_at_result_iter_init(&iter, result);
+	/* g_at_result_iter_next_hexstring ? */
+	if (!g_at_result_iter_next(&iter, ""))
+		return;
+
+	line = g_at_result_iter_raw_line(&iter);
+	DBG("rssi notify:\n %s\n", line);
+}
+
+
 static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 				void *data)
 {
@@ -2105,7 +2196,11 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 
 	DBG("Probing creg");
 
-	g_at_chat_send(nd->chat, "U0000AT+CREG=?", creg_prefix,
+
+	g_mot_chat_register(nd->chat, "U0000~+CREG=", creg_notify_debug, FALSE, nd, NULL);
+	g_mot_chat_register(nd->chat, "U0000~+RSSI=", rssi_notify_debug, FALSE, nd, NULL);
+	
+	g_mot_chat_send(nd->chat, "U0000AT+CREG=?", creg_prefix,
 			at_creg_test_cb, netreg, NULL);
 
 	return 0;
@@ -2128,7 +2223,7 @@ static const struct ofono_netreg_driver driver = {
 	.name				= "motorolamodem",
 	.probe				= at_netreg_probe,
 	.remove				= at_netreg_remove,
-	.registration_status		= at_registration_status,
+//	.registration_status		= at_registration_status,
 //	.current_operator		= at_current_operator,
 //	.list_operators			= at_list_operators,
 //	.register_auto			= at_register_auto,
