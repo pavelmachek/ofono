@@ -331,8 +331,8 @@ static void got_hex_pdu(struct ofono_sms *sms, const char *hexpdu)
 	  printf("tpdu_len: %d\n", tpdu_len);
 	/* Decode pdu and notify about new SMS status report */
 	  decode_hex_own_buf(hexpdu, -1, &pdu_len, 0, pdu);
-	  tpdu_len = pdu_len - 8; /* FIXME: this is not correct. Should be -pdu[0]-1. Should also shift start?  */
-	DBG("Got new Status-Report PDU via CDS: %s, %d", hexpdu, tpdu_len);
+	  tpdu_len = pdu_len - pdu[0] - 1; /* Matches my guess, and matches mbimodem */
+	  DBG("Got new Status-Report PDU via CDS: %s, %d", hexpdu, tpdu_len);
 	  ofono_sms_deliver_notify(sms, pdu, pdu_len, tpdu_len);
 	}
 #if 0
