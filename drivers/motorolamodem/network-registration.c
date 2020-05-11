@@ -1587,6 +1587,7 @@ static void option_query_tech_cb(gboolean ok, GAtResult *result,
 static void creg_notify(GAtResult *result, gpointer user_data)
 {
 	struct ofono_netreg *netreg = user_data;
+	int mode;
 	int status, lac, ci, tech;
 	struct netreg_data *nd = ofono_netreg_get_data(netreg);
 	struct tech_query *tq;
@@ -1594,9 +1595,11 @@ static void creg_notify(GAtResult *result, gpointer user_data)
 	/* HERE */
 	DBG("");
 
-	if (at_util_parse_reg_unsolicited(result, "+CREG:", &status,
-				&lac, &ci, &tech, nd->vendor) == FALSE)
+	if (mot_util_parse_reg(result, "U0000~+CREG=", &mode, &status,
+				&lac, &ci, &tech, 0) == FALSE)
 		return;
+
+	DBG("");
 
 	if (status != 1 && status != 5)
 		goto notify;
@@ -2198,7 +2201,7 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 	DBG("Probing creg");
 
 
-	g_mot_chat_register(nd->chat, "U0000~+CREG=", creg_notify_debug, FALSE, nd, NULL);
+	g_mot_chat_register(nd->chat, "U0000~+CREG=", creg_notify, FALSE, nd, NULL);
 	g_mot_chat_register(nd->chat, "U0000~+RSSI=", rssi_notify, FALSE, nd, NULL);
 	
 	g_mot_chat_send(nd->chat, "U0000AT+CREG=?", creg_prefix,

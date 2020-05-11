@@ -265,6 +265,7 @@ static int motmdm_enable(struct ofono_modem *modem)
 	/* Test parsing of incoming stuff */
 
 	/* CSTAT tells us when SMS & Phonebook are ready to be used */
+	/* FIXME: This is great hack! Maybe no longer suitable? */
 	g_mot_chat_register(data->dlcs[VOICE_DLC], "~+RSSI=", cstat_notify,
 				FALSE, modem, NULL);
 
@@ -294,6 +295,7 @@ static int motmdm_disable(struct ofono_modem *modem)
 	/* FIXME: we should probably turn the modem off */
 
 	DBG("%p", modem);
+	g_mot_chat_send(data->dlcs[VOICE_DLC], "U0000AT+CFUN=0", none_prefix, cfun_cb, modem, NULL);
 
 	for (i = 0; i < NUM_DLC;  i++) {
 		g_mot_chat_unref(data->dlcs[i]);
@@ -302,7 +304,7 @@ static int motmdm_disable(struct ofono_modem *modem)
 
 	data->initialized = 0;
 
-	return -EINVAL;
+	return 0;
 }
 
 struct ofono_sms *sms_hack;
