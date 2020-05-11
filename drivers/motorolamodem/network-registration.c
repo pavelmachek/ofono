@@ -87,6 +87,13 @@ gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
 	DBG("2");
 	DBG("Data: %s", iter.l->data);
 
+	{
+		char *line;
+		line = g_at_result_iter_raw_line(&iter);
+		DBG("parse reg:\n %s\n", line);
+	}
+	
+
 	while (g_at_result_iter_next(&iter, prefix)) {
 		gboolean r;
 
@@ -337,6 +344,22 @@ static void rssi_notify_debug(GAtResult *result, gpointer user_data)
 	DBG("rssi notify:\n %s\n", line);
 }
 
+static void creg_result_debug(GAtResult *result, gpointer user_data)
+{
+	struct netreg_data *nd = user_data;
+
+	GAtResultIter iter;
+	const char *line, *pdu;
+
+	g_at_result_iter_init(&iter, result);
+	/* g_at_result_iter_next_hexstring ? */
+	if (!g_at_result_iter_next(&iter, ""))
+		return;
+
+	line = g_at_result_iter_raw_line(&iter);
+	DBG("creg notify:\n %s\n", line);
+}
+
 
 static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 				void *data)
@@ -365,6 +388,7 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 
 
 	g_mot_chat_register(nd->chat, "U0000~+CREG=", creg_notify, FALSE, nd, NULL);
+	g_mot_chat_register(nd->chat, "U0000+CREG=", creg_result_debug, FALSE, nd, NULL);
 	g_mot_chat_register(nd->chat, "U0000~+RSSI=", rssi_notify, FALSE, nd, NULL);
 	
 	g_mot_chat_send(nd->chat, "U0000AT+CREG=?", creg_prefix,
@@ -390,7 +414,7 @@ static const struct ofono_netreg_driver driver = {
 	.name				= "motorolamodem",
 	.probe				= at_netreg_probe,
 	.remove				= at_netreg_remove,
-//	.registration_status		= at_registration_status,
+	.registration_status		= at_registration_status,
 //	.current_operator		= at_current_operator,
 //	.list_operators			= at_list_operators,
 //	.register_auto			= at_register_auto,
