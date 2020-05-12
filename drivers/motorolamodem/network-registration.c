@@ -71,7 +71,7 @@ struct tech_query {
 	struct ofono_netreg *netreg;
 };
 
-static gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
+static gboolean mot_util_parse_reg(GAtResult *result, int cmd,
 				int *mode, int *status,
 				int *lac, int *ci, int *tech,
 				unsigned int vendor)
@@ -80,10 +80,13 @@ static gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
 	int m, s;
 	int l = -1, c = -1, t = -1;
 	const char *str;
+	char *prefix = !cmd ? "U0000~+CREG=" : "U0000+CREG=";
 
 	DBG("1");
-	g_at_result_iter_init_from_final(&iter, result);
-	/* FIXME: For parsing unsolicited registrartions, _from_final needs to be deleted */
+	if (cmd)
+		g_at_result_iter_init_from_final(&iter, result);
+	else
+		g_at_result_iter_init(&iter, result);
 
 	DBG("1a");
 #if 0
@@ -100,6 +103,7 @@ static gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
 	}
 #endif
 	DBG("Prefix: %s", prefix);
+
 
 	if (g_at_result_iter_next(&iter, prefix)) {
 		gboolean r;
@@ -249,12 +253,11 @@ static void creg_notify_variant(GAtResult *result, gpointer user_data, int varia
 	int status, lac, ci, tech;
 	struct netreg_data *nd = ofono_netreg_get_data(netreg);
 	struct tech_query *tq;
-	char *s = !variant ? "U0000~+CREG=" : "U0000+CREG=";
 
 	/* HERE */
 	DBG("");
 
-	if (mot_util_parse_reg(result, s, &mode, &status,
+	if (mot_util_parse_reg(result, variant, &mode, &status,
 				&lac, &ci, &tech, 0) == FALSE)
 		return;
 
