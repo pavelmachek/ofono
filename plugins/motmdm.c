@@ -192,6 +192,7 @@ static void modem_initialize(struct ofono_modem *modem)
 		if (chat == NULL)
 			goto error;
 
+#if 0
 		g_mot_chat_add_terminator(chat, "U0000+EXT ERROR:", 11, FALSE );
 		g_mot_chat_add_terminator(chat, "U0000+SCRN:OK", -1, TRUE  );
 		g_mot_chat_add_terminator(chat, "U0000+CFUN:OK", -1, TRUE  );
@@ -206,6 +207,7 @@ static void modem_initialize(struct ofono_modem *modem)
 		g_mot_chat_add_terminator(chat, "U0000+FOO:ERROR=9", -1, TRUE  );
 		g_mot_chat_add_terminator(chat, "U0000+CREG:ERROR", -1, FALSE  );
 //		g_mot_chat_add_terminator(chat, "U0000+CREG=", 6, TRUE  );
+#endif
 
 		DBG("modem initialized?\n");
 

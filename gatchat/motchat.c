@@ -43,9 +43,6 @@
 
 /* #define WRITE_SCHEDULER_DEBUG 1 */
 
-#define COMMAND_FLAG_EXPECT_PDU			0x1
-#define COMMAND_FLAG_EXPECT_SHORT_PROMPT	0x2
-
 struct mot_chat;
 static void chat_wakeup_writer(struct mot_chat *chat);
 
@@ -78,12 +75,6 @@ typedef gboolean (*node_remove_func)(struct at_notify_node *node,
 struct at_notify {
 	GSList *nodes;
 	gboolean pdu;
-};
-
-struct terminator_info {
-	char *terminator;
-	int len;
-	gboolean success;
 };
 
 static gboolean node_is_destroyed(struct at_notify_node *node, gpointer user)
@@ -282,15 +273,6 @@ static void at_command_destroy(struct at_command *cmd)
 	g_free(cmd);
 }
 
-static void free_terminator(gpointer pointer)
-{
-	struct terminator_info *info = pointer;
-	g_free(info->terminator);
-	info->terminator = NULL;
-	g_free(info);
-	info = NULL;
-}
-
 static void chat_cleanup(struct mot_chat *chat)
 {
 	struct at_command *c;
@@ -324,11 +306,6 @@ static void chat_cleanup(struct mot_chat *chat)
 	if (chat->timeout_source) {
 		g_source_remove(chat->timeout_source);
 		chat->timeout_source = 0;
-	}
-
-	if (chat->terminator_list) {
-		g_slist_free_full(chat->terminator_list, free_terminator);
-		chat->terminator_list = NULL;
 	}
 }
 
@@ -423,33 +400,6 @@ static void mot_chat_finish_command(struct mot_chat *p, gboolean ok, char *final
 	at_command_destroy(cmd);
 }
 
-static void mot_chat_add_terminator(struct mot_chat *chat, char *terminator,
-					int len, gboolean success)
-{
-	struct terminator_info *info = g_new0(struct terminator_info, 1);
-	info->terminator = g_strdup(terminator);
-	info->len = len;
-	info->success = success;
-	chat->terminator_list = g_slist_prepend(chat->terminator_list, info);
-}
-
-static void mot_chat_blacklist_terminator(struct mot_chat *chat,
-						GMotChatTerminator terminator)
-{
-	chat->terminator_blacklist |= 1 << terminator;
-}
-
-static gboolean check_terminator(struct terminator_info *info, char *line)
-{
-	if (info->len == -1 && !strcmp(line, info->terminator))
-		return TRUE;
-
-	if (info->len > 0 && !strncmp(line, info->terminator, info->len))
-		return TRUE;
-
-	return FALSE;
-}
-
 static gboolean mot_chat_handle_command_response(struct mot_chat *p,
 							struct at_command *cmd,
 							char *line)
@@ -458,12 +408,9 @@ static gboolean mot_chat_handle_command_response(struct mot_chat *p,
 
 	printf("command response: %s\n", line);
 
-	for (l = p->terminator_list; l; l = l->next) {
-		struct terminator_info *info = l->data;
-		if (check_terminator(info, line)) {
-			mot_chat_finish_command(p, info->success, line);
-			return TRUE;
-		}
+	if (!strncmp(line, "U0000", 5) && (line[5] != '~')) {
+	  mot_chat_finish_command(p, TRUE, line);
+	  return TRUE;
 	}
 	
 	if (cmd->prefixes) {
@@ -483,23 +430,7 @@ static gboolean mot_chat_handle_command_response(struct mot_chat *p,
 out:
 	printf("Going out... pdu/multiline?!\n");
 
-	if (cmd->listing && (cmd->flags & COMMAND_FLAG_EXPECT_PDU)) {
-		p->pdu_notify = line;
-		return TRUE;
-	}
-
 	/* FIXME: cmd->listing support can be removed? */
-	if (cmd->listing) {
-		GAtResult result;
-
-		result.lines = g_slist_prepend(NULL, line);
-		result.final_or_pdu = NULL;
-
-		cmd->listing(&result, cmd->user_data);
-
-		g_slist_free(result.lines);
-		g_free(line);
-	}
 
 	return TRUE;
 }
@@ -557,77 +488,6 @@ done:
 	/* No matches & no commands active, ignore line */
 	g_free(str);
 }
-
-#if 0
-static void have_notify_pdu(struct mot_chat *p, char *pdu, GAtResult *result)
-{
-	GHashTableIter iter;
-	struct at_notify *notify;
-	char *prefix;
-	gpointer key, value;
-	gboolean called = FALSE;
-
-	p->in_notify = TRUE;
-
-	g_hash_table_iter_init(&iter, p->notify_list);
-
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		prefix = key;
-		notify = value;
-
-		if (!g_str_has_prefix(p->pdu_notify, prefix))
-			continue;
-
-		if (!notify->pdu)
-			continue;
-
-		g_slist_foreach(notify->nodes, at_notify_call_callback, result);
-		called = TRUE;
-	}
-
-	p->in_notify = FALSE;
-
-	if (called)
-		mot_chat_unregister_all(p, FALSE, node_is_destroyed, NULL);
-}
-
-static void have_pdu(struct mot_chat *p, char *pdu)
-{
-	struct at_command *cmd;
-	GAtResult result;
-	gboolean listing_pdu = FALSE;
-
-	if (pdu == NULL)
-		goto error;
-
-	result.lines = g_slist_prepend(NULL, p->pdu_notify);
-	result.final_or_pdu = pdu;
-
-	cmd = g_queue_peek_head(p->command_queue);
-
-	if (cmd && (cmd->flags & COMMAND_FLAG_EXPECT_PDU) &&
-			p->cmd_bytes_written > 0) {
-		char c = cmd->cmd[p->cmd_bytes_written - 1];
-
-		if (c == '\r')
-			listing_pdu = TRUE;
-	}
-
-	if (listing_pdu) {
-		cmd->listing(&result, cmd->user_data);
-	} else
-		have_notify_pdu(p, pdu, &result);
-
-	g_slist_free(result.lines);
-
-error:
-	g_free(p->pdu_notify);
-	p->pdu_notify = NULL;
-
-	if (pdu)
-		g_free(pdu);
-}
-#endif
 
 static char *extract_line(struct mot_chat *p, struct ring_buffer *rbuf)
 {
@@ -709,44 +569,6 @@ static void new_bytes(struct ring_buffer *rbuf, gpointer user_data)
 		g_free(p);
 }
 
-static void wakeup_cb(gboolean ok, GAtResult *result, gpointer user_data)
-{
-	struct mot_chat *chat = user_data;
-
-	if (ok == FALSE)
-		return;
-
-	if (chat->debugf)
-		chat->debugf("Finally woke up the modem\n", chat->debug_data);
-
-	g_source_remove(chat->timeout_source);
-	chat->timeout_source = 0;
-}
-
-static gboolean wakeup_no_response(gpointer user_data)
-{
-	struct mot_chat *chat = user_data;
-	struct at_command *cmd = g_queue_peek_head(chat->command_queue);
-
-	if (chat->debugf)
-		chat->debugf("Wakeup got no response\n", chat->debug_data);
-
-	if (cmd == NULL)
-		return FALSE;
-
-	mot_chat_finish_command(chat, FALSE, NULL);
-
-	cmd = at_command_create(0, chat->wakeup, none_prefix, 0,
-				NULL, wakeup_cb, chat, NULL, TRUE);
-	if (cmd == NULL) {
-		chat->timeout_source = 0;
-		return FALSE;
-	}
-
-	g_queue_push_head(chat->command_queue, cmd);
-
-	return TRUE;
-}
 
 static gboolean can_write_data(gpointer data)
 {
@@ -778,30 +600,6 @@ static gboolean can_write_data(gpointer data)
 	 */
 	if (chat->cmd_bytes_written >= len)
 		return FALSE;
-
-	if (chat->wakeup) {
-		if (chat->wakeup_timer == NULL) {
-			wakeup_first = TRUE;
-			chat->wakeup_timer = g_timer_new();
-
-		} else if (g_timer_elapsed(chat->wakeup_timer, NULL) >
-				chat->inactivity_time)
-			wakeup_first = TRUE;
-	}
-
-	if (chat->cmd_bytes_written == 0 && wakeup_first == TRUE) {
-		cmd = at_command_create(0, chat->wakeup, none_prefix, 0,
-					NULL, wakeup_cb, chat, NULL, TRUE);
-		if (cmd == NULL)
-			return FALSE;
-
-		g_queue_push_head(chat->command_queue, cmd);
-
-		len = strlen(chat->wakeup);
-
-		chat->timeout_source = g_timeout_add(chat->wakeup_timeout,
-						wakeup_no_response, chat);
-	}
 
 	towrite = len - chat->cmd_bytes_written;
 
@@ -835,10 +633,6 @@ static gboolean can_write_data(gpointer data)
 
 	if (bytes_written < towrite)
 		return TRUE;
-
-	/* Full command submitted, update timer */
-	if (chat->wakeup_timer)
-		g_timer_start(chat->wakeup_timer);
 
 	return FALSE;
 }
@@ -916,21 +710,6 @@ static gboolean mot_chat_set_debug(struct mot_chat *chat,
 
 	if (chat->io)
 		g_at_io_set_debug(chat->io, func, user_data);
-
-	return TRUE;
-}
-
-static gboolean mot_chat_set_wakeup_command(struct mot_chat *chat,
-						const char *cmd,
-						unsigned int timeout,
-						unsigned int msec)
-{
-	if (chat->wakeup)
-		g_free(chat->wakeup);
-
-	chat->wakeup = g_strdup(cmd);
-	chat->inactivity_time = (gdouble)msec / 1000;
-	chat->wakeup_timeout = timeout;
 
 	return TRUE;
 }
@@ -1376,24 +1155,6 @@ gboolean g_mot_chat_set_debug(GMotChat *chat,
 		return FALSE;
 
 	return mot_chat_set_debug(chat->parent, func, user_data);
-}
-
-void g_mot_chat_add_terminator(GMotChat *chat, char *terminator,
-					int len, gboolean success)
-{
-	if (chat == NULL || chat->group != 0)
-		return;
-
-	mot_chat_add_terminator(chat->parent, terminator, len, success);
-}
-
-gboolean g_mot_chat_set_wakeup_command(GMotChat *chat, const char *cmd,
-					unsigned int timeout, unsigned int msec)
-{
-	if (chat == NULL || chat->group != 0)
-		return FALSE;
-
-	return mot_chat_set_wakeup_command(chat->parent, cmd, timeout, msec);
 }
 
 guint g_mot_chat_send(GMotChat *chat, const char *cmd,
