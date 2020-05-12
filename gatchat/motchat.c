@@ -46,8 +46,6 @@
 struct mot_chat;
 static void chat_wakeup_writer(struct mot_chat *chat);
 
-static const char *none_prefix[] = { NULL };
-
 struct at_command {
 	char *cmd;
 	char **prefixes;
@@ -404,8 +402,6 @@ static gboolean mot_chat_handle_command_response(struct mot_chat *p,
 							struct at_command *cmd,
 							char *line)
 {
-	GSList *l;
-
 	printf("command response: %s\n", line);
 
 	if (!strncmp(line, "U0000", 5) && (line[5] != '~')) {
@@ -578,7 +574,6 @@ static gboolean can_write_data(gpointer data)
 	gsize towrite;
 	gsize len;
 	char *cr;
-	gboolean wakeup_first = FALSE;
 #ifdef WRITE_SCHEDULER_DEBUG
 	int limiter;
 #endif
