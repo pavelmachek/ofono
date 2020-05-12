@@ -376,6 +376,7 @@ static void mot_chat_finish_command(struct mot_chat *p, gboolean ok, char *final
 {
 	struct at_command *cmd = g_queue_pop_head(p->command_queue);
 
+	printf("Finish command, final: %s\n", final);
 	/* Cannot happen, but lets be paranoid */
 	if (cmd == NULL)
 		return;

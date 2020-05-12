@@ -82,7 +82,8 @@ static gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
 	const char *str;
 
 	DBG("1");
-	g_at_result_iter_init(&iter, result);
+	g_at_result_iter_init_from_final(&iter, result);
+	/* FIXME: For parsing unsolicited registrartions, _from_final needs to be deleted */
 
 	DBG("1a");
 #if 0
@@ -158,11 +159,15 @@ static void at_creg_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	struct ofono_error error;
 	struct at_netreg_data *nd = cbd->user;
 
-	DBG("creg_cb");
+	DBG("creg_cb, %s", result->final_or_pdu);
+	error.type = OFONO_ERROR_TYPE_NO_ERROR;
+	error.error = 0;
+
 #if 1
 	/* FIXME: can't use decode_at_error; it is broken */
-	decode_at_error(&error, g_at_result_final_response(result));
-
+	//decode_at_error(&error, g_at_result_final_response(result));
+	
+	
 	if (!ok) {
 		DBG("creg_cb: not okay");
 		cb(&error, -1, -1, -1, -1, cbd->data);
@@ -202,7 +207,6 @@ static void at_registration_status(struct ofono_netreg *netreg,
 	cbd->user = nd;
 
 	DBG("Sending creg");
-	return;
 	if (g_mot_chat_send(nd->chat, "U0000AT+CREG?", creg_prefix,
 			   at_creg_cb, cbd, g_free) > 0) {
 		DBG("Creg sent ok ok");
