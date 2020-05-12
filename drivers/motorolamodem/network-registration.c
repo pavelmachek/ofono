@@ -71,7 +71,7 @@ struct tech_query {
 	struct ofono_netreg *netreg;
 };
 
-gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
+static gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
 				int *mode, int *status,
 				int *lac, int *ci, int *tech,
 				unsigned int vendor)
@@ -110,27 +110,24 @@ gboolean mot_util_parse_reg(GAtResult *result, const char *prefix,
 
 		DBG("3");		
 
-			r = g_at_result_iter_next_unquoted_string(&iter, &str);
+		r = g_at_result_iter_next_unquoted_string(&iter, &str);
+		if (r == TRUE)
+			l = strtol(str, NULL, 16);
+		else
+			goto out;
 
-			if (r == TRUE)
-				l = strtol(str, NULL, 16);
-			else
-				goto out;
+		r = g_at_result_iter_next_unquoted_string(&iter, &str);
 
-			r = g_at_result_iter_next_unquoted_string(&iter, &str);
-
-			if (r == TRUE)
-				c = strtol(str, NULL, 16);
-			else
-				goto out;
+		if (r == TRUE)
+			c = strtol(str, NULL, 16);
+		else
+			goto out;
 
 		DBG("parsed ok");
-
 		g_at_result_iter_next_number(&iter, &t);
 
 out:
 		DBG("parsed ok or not?");
-
 		
 		if (mode)
 			*mode = m;
@@ -248,11 +245,11 @@ static void creg_notify_variant(GAtResult *result, gpointer user_data, int varia
 	int status, lac, ci, tech;
 	struct netreg_data *nd = ofono_netreg_get_data(netreg);
 	struct tech_query *tq;
+	char *s = !variant ? "U0000~+CREG=" : "U0000+CREG=";
 
 	/* HERE */
 	DBG("");
 
-	char *s = !variant ? "U0000~+CREG=" : "U0000+CREG=";
 	if (mot_util_parse_reg(result, s, &mode, &status,
 				&lac, &ci, &tech, 0) == FALSE)
 		return;
