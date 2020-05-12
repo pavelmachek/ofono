@@ -302,10 +302,6 @@ static void chat_cleanup(struct mot_chat *chat)
 	g_queue_free(chat->command_queue);
 	chat->command_queue = NULL;
 
-	/* Cleanup any response lines we have pending */
-	g_slist_free_full(chat->response_lines, g_free);
-	chat->response_lines = NULL;
-
 	/* Cleanup registered notifications */
 	g_hash_table_destroy(chat->notify_list);
 	chat->notify_list = NULL;
@@ -404,7 +400,6 @@ static gboolean mot_chat_match_notify(struct mot_chat *chat, char *line)
 static void mot_chat_finish_command(struct mot_chat *p, gboolean ok, char *final)
 {
 	struct at_command *cmd = g_queue_pop_head(p->command_queue);
-	GSList *response_lines;
 
 	/* Cannot happen, but lets be paranoid */
 	if (cmd == NULL)
@@ -415,21 +410,14 @@ static void mot_chat_finish_command(struct mot_chat *p, gboolean ok, char *final
 	if (g_queue_peek_head(p->command_queue))
 		chat_wakeup_writer(p);
 
-	response_lines = p->response_lines;
-	p->response_lines = NULL;
-
 	if (cmd->callback) {
 		GAtResult result;
 
-		response_lines = g_slist_reverse(response_lines);
-
 		result.final_or_pdu = final;
-		result.lines = response_lines;
+		result.lines = NULL;
 
 		cmd->callback(ok, &result, cmd->user_data);
 	}
-
-	g_slist_free_full(response_lines, g_free);
 
 	g_free(final);
 	at_command_destroy(cmd);
@@ -511,8 +499,7 @@ out:
 
 		g_slist_free(result.lines);
 		g_free(line);
-	} else
-		p->response_lines = g_slist_prepend(p->response_lines, line);
+	}
 
 	return TRUE;
 }
