@@ -1400,15 +1400,6 @@ void g_mot_chat_add_terminator(GMotChat *chat, char *terminator,
 	mot_chat_add_terminator(chat->parent, terminator, len, success);
 }
 
-void g_mot_chat_blacklist_terminator(GMotChat *chat,
-						GMotChatTerminator terminator)
-{
-	if (chat == NULL || chat->group != 0)
-		return;
-
-	mot_chat_blacklist_terminator(chat->parent, terminator);
-}
-
 gboolean g_mot_chat_set_wakeup_command(GMotChat *chat, const char *cmd,
 					unsigned int timeout, unsigned int msec)
 {
@@ -1425,45 +1416,6 @@ guint g_mot_chat_send(GMotChat *chat, const char *cmd,
 	return mot_chat_send_common(chat->parent, chat->group,
 					cmd, prefix_list, 0, NULL,
 					func, user_data, notify);
-}
-
-guint g_mot_chat_send_listing(GMotChat *chat, const char *cmd,
-				const char **prefix_list,
-				GAtNotifyFunc listing, GAtResultFunc func,
-				gpointer user_data, GDestroyNotify notify)
-{
-	if (listing == NULL)
-		return 0;
-
-	return mot_chat_send_common(chat->parent, chat->group,
-					cmd, prefix_list, 0,
-					listing, func, user_data, notify);
-}
-
-guint g_mot_chat_send_pdu_listing(GMotChat *chat, const char *cmd,
-				const char **prefix_list,
-				GAtNotifyFunc listing, GAtResultFunc func,
-				gpointer user_data, GDestroyNotify notify)
-{
-	if (listing == NULL)
-		return 0;
-
-	return mot_chat_send_common(chat->parent, chat->group,
-					cmd, prefix_list,
-					COMMAND_FLAG_EXPECT_PDU,
-					listing, func, user_data, notify);
-}
-
-guint g_mot_chat_send_and_expect_short_prompt(GMotChat *chat, const char *cmd,
-						const char **prefix_list,
-						GAtResultFunc func,
-						gpointer user_data,
-						GDestroyNotify notify)
-{
-	return mot_chat_send_common(chat->parent, chat->group,
-					cmd, prefix_list,
-					COMMAND_FLAG_EXPECT_SHORT_PROMPT,
-					NULL, func, user_data, notify);
 }
 
 gboolean g_mot_chat_cancel(GMotChat *chat, guint id)
