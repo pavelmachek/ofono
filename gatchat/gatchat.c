@@ -101,6 +101,7 @@ struct at_chat {
 	gboolean destroyed;			/* Re-entrancy guard */
 	gboolean in_read_handler;		/* Re-entrancy guard */
 	gboolean in_notify;
+	guint hdrlen;				/* Non-standard header length */
 	GSList *terminator_list;		/* Non-standard terminator */
 	char *delimiter;			/* Non-standard delimiter */
 	guint16 terminator_blacklist;		/* Blacklisted terinators */
@@ -505,6 +506,11 @@ static void at_chat_add_delimiter(struct at_chat *chat, char *delimiter)
 	chat->delimiter = g_strdup(delimiter);
 }
 
+static void at_chat_add_hdrlen(struct at_chat *chat, guint len)
+{
+	chat->hdrlen = len;
+}
+
 static gboolean check_terminator(struct terminator_info *info, char *line,
 					char *resp)
 {
@@ -739,6 +745,11 @@ static char *extract_line(struct at_chat *p, struct ring_buffer *rbuf)
 
 		if (pos == wrap)
 			buf = ring_buffer_read_ptr(rbuf, pos);
+	}
+
+	if (p->hdrlen && p->hdrlen < line_length) {
+		strip_front += p->hdrlen;
+		line_length -= p->hdrlen;
 	}
 
 	line = g_try_new(char, line_length + 1);
@@ -1535,6 +1546,14 @@ void g_at_chat_add_delimiter(GAtChat *chat, char *delimiter)
 		return;
 
 	at_chat_add_delimiter(chat->parent, delimiter);
+}
+
+void g_at_chat_add_hdrlen(GAtChat *chat, guint len)
+{
+	if (chat == NULL || chat->group != 0)
+		return;
+
+	at_chat_add_hdrlen(chat->parent, len);
 }
 
 void g_at_chat_blacklist_terminator(GAtChat *chat,
