@@ -773,17 +773,12 @@ static gboolean decode_deliver(const unsigned char *pdu, int len,
 	if (!next_octet(pdu, len, &offset, &out->deliver.udl))
 		return FALSE;
 
-	printf("decode_deliver... udl in bytes\n");		
 	expected = sms_udl_in_bytes(out->deliver.udl, out->deliver.dcs);
 
 	if ((len - offset) < expected)
 		return FALSE;
 
 	memcpy(out->deliver.ud, pdu + offset, expected);
-	printf("decode_deliver... all ok\n");
-
-	printf("Number: %23s\n", out->deliver.oaddr.address);
-	printf("User data length: %d\n", out->deliver.udl);
 
 	return TRUE;
 }
@@ -1470,7 +1465,7 @@ static gboolean decode_command(const unsigned char *pdu, int len,
 	return TRUE;
 }
 
-/* Buffer must be at least 164 (tpdu) + 12 (SC address) bytes long */
+/* Buffer must be at least 164 (tpud) + 12 (SC address) bytes long */
 gboolean sms_encode(const struct sms *in, int *len, int *tpdu_len,
 			unsigned char *pdu)
 {

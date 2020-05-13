@@ -197,11 +197,8 @@ static void history_sms_send_pending(struct ofono_atom *atom, void *data)
 	struct ofono_history_context *context = __ofono_atom_get_data(atom);
 	struct history_sms_foreach_data *hfd = data;
 
-	DBG("");
-	if (context->driver->sms_send_pending == NULL) {
-	  DBG("No send pending available?");
+	if (context->driver->sms_send_pending == NULL)
 		return;
-	}
 
 	context->driver->sms_send_pending(context, hfd->uuid, hfd->address,
 						hfd->when, hfd->text);
