@@ -175,6 +175,12 @@ AC_ARG_ENABLE(bluez4, AC_HELP_STRING([--enable-bluez4],
 				[enable BlueZ 4 plugins support prior to BlueZ 5]),
 					[enable_bluez4=${enableval}])
 
+AC_ARG_ENABLE(motorolamodem, AC_HELP_STRING([--disable-motorolamodem],
+				[disable Motorola serial device modem]),
+					[enable_motorolamodem=${enableval}])
+
+AM_CONDITIONAL(MOTOROLAMODEM, test "${enable_motorolamodem}" != "no")
+
 if (test "${enable_bluez4}" = "yes"); then
 	PKG_CHECK_MODULES(BLUEZ, bluez >= 4.99 bluez < 5, dummy=yes,
 			  AC_MSG_ERROR(Bluetooth library >= 4.99 and < 5 is required))
