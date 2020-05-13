@@ -78,6 +78,11 @@ GAtSyntax *g_at_syntax_new_gsmv1(void);
  */
 GAtSyntax *g_at_syntax_new_gsm_permissive(void);
 
+/* This syntax implements handling for the custom header on some Motorola
+ * mapphone modems such as Droid 4 using g_at_syntax_new_gsm_permissive()
+ */
+GAtSyntax *g_at_syntax_new_motmdm_permissive(void);
+
 GAtSyntax *g_at_syntax_ref(GAtSyntax *syntax);
 void g_at_syntax_unref(GAtSyntax *syntax);
 

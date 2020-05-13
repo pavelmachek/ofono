@@ -376,6 +376,35 @@ out:
 	return res;
 }
 
+/* Some Motorola modems have a U1234 style custom header */
+static GAtSyntaxResult motmdm_permissive_feed(GAtSyntax *syntax,
+						const char *bytes, gsize *len)
+{
+	GAtSyntaxResult res;
+	const int hdrlen = 5;
+	const char *mbytes;
+	gsize mlen;
+
+	if (*len < hdrlen || (*len > 0 && bytes[0] != 'U'))
+		return gsm_permissive_feed(syntax, bytes, len);
+
+	mbytes = bytes + hdrlen;;
+	mlen = *len - hdrlen;
+
+	res = gsm_permissive_feed(syntax, mbytes, &mlen);
+
+	*len = mlen + hdrlen;
+
+	/* At least xt875 is quirky and not using '\r' like xt894 */
+	if (*len > 0 && res == G_AT_SYNTAX_RESULT_UNSURE &&
+			bytes[*len - 1] == '\n') {
+		syntax->state = GSM_PERMISSIVE_STATE_IDLE;
+		res = G_AT_SYNTAX_RESULT_LINE;
+	}
+
+	return res;
+}
+
 GAtSyntax *g_at_syntax_new_full(GAtSyntaxFeedFunc feed,
 					GAtSyntaxSetHintFunc hint,
 					int initial_state)
@@ -401,6 +430,12 @@ GAtSyntax *g_at_syntax_new_gsmv1(void)
 GAtSyntax *g_at_syntax_new_gsm_permissive(void)
 {
 	return g_at_syntax_new_full(gsm_permissive_feed, gsm_permissive_hint,
+					GSM_PERMISSIVE_STATE_IDLE);
+}
+
+GAtSyntax *g_at_syntax_new_motmdm_permissive(void)
+{
+	return g_at_syntax_new_full(motmdm_permissive_feed, gsm_permissive_hint,
 					GSM_PERMISSIVE_STATE_IDLE);
 }
 
