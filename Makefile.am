@@ -297,6 +297,11 @@ builtin_sources += $(qmi_sources) \
 
 builtin_modules += gobi
 builtin_sources += plugins/gobi.c
+
+if MOTOROLAMODEM
+builtin_modules += motmdm
+builtin_sources += plugins/motmdm.c
+endif
 endif
 
 if MBIMMODEM
