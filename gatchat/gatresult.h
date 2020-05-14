@@ -48,6 +48,7 @@ struct _GAtResultIter {
 typedef struct _GAtResultIter GAtResultIter;
 
 void g_at_result_iter_init(GAtResultIter *iter, GAtResult *result);
+void g_at_result_iter_init_from_final(GAtResultIter *iter, GAtResult *result);
 
 gboolean g_at_result_iter_next(GAtResultIter *iter, const char *prefix);
 gboolean g_at_result_iter_open_list(GAtResultIter *iter);
