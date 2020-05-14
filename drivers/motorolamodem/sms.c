@@ -49,12 +49,9 @@
 static const char *none_prefix[] = { NULL };
 
 struct sms_data {
-	char *cnma_ack_pdu;
-	int cnma_ack_pdu_len;
 	GMotChat *chat, *send_chat;
-	unsigned int vendor;
 
-  struct cb_data *cbd; /* callback data for */
+	struct cb_data *cbd; /* callback data for... FIXME: unused? */
 };
 
 static void motorola_cmgs_cb(GAtResult *result, gpointer user_data)
@@ -70,18 +67,10 @@ static void motorola_cmgs_cb(GAtResult *result, gpointer user_data)
 	DBG("");
 	data->cbd = NULL;
 
-	//decode_at_error(&error, g_at_result_final_response(result));
-
-	if (0) {
-	  DBG("cmgs -- returned error");
-#if 0
-		cb(&error, -1, cbd->data);
-		return;
-#endif
-	}
 	DBG("iter init");
 	g_at_result_iter_init(&iter, result);
 
+	/* FIXME: this needs to be U0000...?! */
 	if (!g_at_result_iter_next(&iter, "+GCMGS="))
 		goto err;
 
@@ -290,7 +279,6 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	data = g_new0(struct sms_data, 1);
 	data->chat = g_mot_chat_clone(param->receive_chat);
 	data->send_chat = g_mot_chat_clone(param->send_chat);
-	data->vendor = vendor;
 
 	ofono_sms_set_data(sms, data);
 
@@ -343,8 +331,6 @@ AT+GCNMA=1
 static void motorola_sms_remove(struct ofono_sms *sms)
 {
 	struct sms_data *data = ofono_sms_get_data(sms);
-
-	l_free(data->cnma_ack_pdu);
 
 	g_mot_chat_unref(data->chat);
 	g_mot_chat_unref(data->send_chat);
