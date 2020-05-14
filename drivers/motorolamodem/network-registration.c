@@ -47,7 +47,6 @@
 #include <drivers/atmodem/atutil.h>
 
 static const char *none_prefix[] = { NULL };
-static const char *creg_prefix[] = { "U0000~+CREG=", NULL };
 
 /*
     sudo su
@@ -163,7 +162,7 @@ static void at_creg_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	ofono_netreg_status_cb_t cb = cbd->cb;
 	int status, lac, ci, tech;
 	struct ofono_error error;
-	struct at_netreg_data *nd = cbd->user;
+//	struct at_netreg_data *nd = cbd->user;
 
 	DBG("creg_cb, %s", result->final_or_pdu);
 	error.type = OFONO_ERROR_TYPE_NO_ERROR;
@@ -182,7 +181,7 @@ static void at_creg_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	DBG("creg_cb: okay");
 #endif
 
-	if (mot_util_parse_reg(result, "U0000+CREG=", NULL, &status,
+	if (mot_util_parse_reg(result, 1, NULL, &status,
 				&lac, &ci, &tech, 0) == FALSE) {
 		CALLBACK_WITH_FAILURE(cb, -1, -1, -1, -1, cbd->data);
 		return;
@@ -213,7 +212,7 @@ static void at_registration_status(struct ofono_netreg *netreg,
 	cbd->user = nd;
 
 	DBG("Sending creg");
-	if (g_mot_chat_send(nd->chat, "U0000AT+CREG?", creg_prefix,
+	if (g_mot_chat_send(nd->chat, "U0000AT+CREG?", none_prefix,
 			   at_creg_cb, cbd, g_free) > 0) {
 		DBG("Creg sent ok ok");
 		return;
@@ -298,10 +297,6 @@ static void creg_notify(GAtResult *result, gpointer user_data)
 	creg_notify_variant(result, user_data, 0);
 }
 
-/* FIXME: This is quite a hack. +CREG= is really response to our
- * CREG?, but core does not pass that to us, so we lie to it, and
- * handle it as unsolicited message.
- */
 static void creg_notify_hack(GAtResult *result, gpointer user_data)
 {
 	creg_notify_variant(result, user_data, 1);
@@ -310,26 +305,15 @@ static void creg_notify_hack(GAtResult *result, gpointer user_data)
 static void at_creg_test_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
 	struct ofono_netreg *netreg = user_data;
-	struct netreg_data *nd = ofono_netreg_get_data(netreg);
-	gint range[2];
-	GAtResultIter iter;
-	int creg1 = 0;
-	int creg2 = 0;
 
 	DBG("");
 
-	if (!ok) {
-		DBG("motmdm -- failure is expected");
-		//g_mot_chat_register(nd->chat, "+CREG=",
-		//		   creg_notify, FALSE, netreg, NULL);
-		ofono_netreg_register(netreg);
-		return;
-	}
-	DBG("motmdm -- creg test okay?!");
+	/* FIXME: hack, we are using callbacks to avoid problems with core. */
 	ofono_netreg_register(netreg);
 	return;
 }
 
+#if 0
 static void creg_notify_debug(GAtResult *result, gpointer user_data)
 {
 	struct netreg_data *nd = user_data;
@@ -377,6 +361,7 @@ static void creg_result_debug(GAtResult *result, gpointer user_data)
 	line = g_at_result_iter_raw_line(&iter);
 	DBG("creg notify:\n %s\n", line);
 }
+#endif
 
 
 static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
@@ -406,10 +391,10 @@ static int at_netreg_probe(struct ofono_netreg *netreg, unsigned int vendor,
 
 
 	g_mot_chat_register(nd->chat, "U0000~+CREG=", creg_notify, FALSE, netreg, NULL);
-	g_mot_chat_register(nd->chat, "U0000+CREG=", creg_notify_hack, FALSE, netreg, NULL);
+	//g_mot_chat_register(nd->chat, "U0000+CREG=", creg_notify_hack, FALSE, netreg, NULL);
 	g_mot_chat_register(nd->chat, "U0000~+RSSI=", rssi_notify, FALSE, netreg, NULL);
 	
-	g_mot_chat_send(nd->chat, "U0000AT+CREG=?", creg_prefix,
+	g_mot_chat_send(nd->chat, "U0000AT+FOO=9", none_prefix,
 			at_creg_test_cb, netreg, NULL);
 
 	return 0;
