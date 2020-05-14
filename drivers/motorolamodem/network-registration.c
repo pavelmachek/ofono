@@ -297,10 +297,12 @@ static void creg_notify(GAtResult *result, gpointer user_data)
 	creg_notify_variant(result, user_data, 0);
 }
 
+#if 0
 static void creg_notify_hack(GAtResult *result, gpointer user_data)
 {
 	creg_notify_variant(result, user_data, 1);
 }
+#endif
 
 static void at_creg_test_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
