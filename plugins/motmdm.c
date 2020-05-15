@@ -80,6 +80,7 @@ static const char *devices[] = {
 struct motmdm_data {
 	struct qmi_device *device;
 	struct qmi_service *dms;
+	struct motorola_netreg_params mot_netreg;
 	struct motorola_sms_params mot_sms;
 	GAtChat *chat[NUM_CHAT];
 	unsigned long features;
@@ -531,12 +532,17 @@ static void motmdm_post_sim(struct ofono_modem *modem)
 static void motmdm_post_online(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
+	struct motorola_netreg_params *mot_netreg = &data->mot_netreg;
 	struct ofono_gprs *gprs;
 	struct ofono_gprs_context *gc;
 
 	DBG("%p", modem);
 
-	ofono_netreg_create(modem, 0, "qmimodem", data->device);
+	mot_netreg->recv = data->chat[DLC_VOICE];
+	mot_netreg->qmi_netreg = ofono_netreg_create(modem, 0, "qmimodem",
+							data->device);
+	ofono_netreg_create(modem, 0, "motorolamodem", mot_netreg);
+
 	ofono_netmon_create(modem, 0, "qmimodem", data->device);
 
 	gprs = ofono_gprs_create(modem, 0, "qmimodem", data->device);

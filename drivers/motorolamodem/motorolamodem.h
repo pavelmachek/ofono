@@ -19,6 +19,8 @@
  *
  */
 
+extern void motorola_netreg_init(void);
+extern void motorola_netreg_exit(void);
 extern void motorola_voicecall_init(void);
 extern void motorola_voicecall_exit(void);
 
@@ -35,4 +37,9 @@ struct motorola_sms_params {
 	struct ofono_sms *qmi_sms;
 	GAtChat *recv;
 	GAtChat *xmit;
+};
+
+struct motorola_netreg_params {
+	struct ofono_netreg *qmi_netreg;
+	GAtChat *recv;
 };
