@@ -357,6 +357,19 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 	return found;
 }
 
+static void motmdm_close_dlc_devices(struct ofono_modem *modem)
+{
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+	GAtChat *chat;
+	int i;
+
+	for (i = 0; i < NUM_DLC; i++) {
+		chat = data->chat[i];
+		g_at_chat_cancel_all(chat);
+		g_at_chat_unregister_all(chat);
+	}
+}
+
 static int motmdm_enable(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
@@ -415,8 +428,7 @@ static int motmdm_disable(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-	g_at_chat_cancel_all(data->chat[DLC_VOICE]);
-	g_at_chat_unregister_all(data->chat[DLC_VOICE]);
+	motmdm_close_dlc_devices(modem);
 
 	qmi_service_cancel_all(data->dms);
 	qmi_service_unregister_all(data->dms);
