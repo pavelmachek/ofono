@@ -24,6 +24,9 @@
 extern void motorola_voicecall_init(void);
 extern void motorola_voicecall_exit(void);
 
+extern void motorola_sim_init(void);
+extern void motorola_sim_exit(void);
+
 extern void motorola_sms_init(void);
 extern void motorola_sms_exit(void);
 
