@@ -39,6 +39,9 @@ extern guint mot_at_chat_send(GMotChat *chat, const char *cmd,
 				const char **valid_resp, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify);
 
+extern void motorola_sim_init(void);
+extern void motorola_sim_exit(void);
+
 extern void motorola_sms_init(void);
 extern void motorola_sms_exit(void);
 

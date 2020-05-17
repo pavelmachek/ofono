@@ -522,6 +522,7 @@ builtin_sources += drivers/motorolamodem/motorolamodem.c \
 			drivers/motorolamodem/network-registration.c \
 			drivers/motorolamodem/netmon.c \
 			drivers/motorolamodem/voicecall.c \
+			drivers/motorolamodem/sim.c \
 			drivers/motorolamodem/sms.c
 endif
 

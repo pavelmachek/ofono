@@ -651,6 +651,11 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 	ofono_location_reporting_create(modem, 0, "qmimodem", data->device);
 
 	ofono_voicecall_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
+#if 0
+	data->sim = ofono_sim_create(modem, 0, "notyetmotorolamodem", data->chat[DLC_VOICE]);
+	ofono_sim_initialized_notify(data->sim);
+
+#endif
 #if 1
 	{
 		struct motorola_sms_params motorola_sms_params = {
