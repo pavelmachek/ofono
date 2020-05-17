@@ -747,7 +747,8 @@ static char *extract_line(struct at_chat *p, struct ring_buffer *rbuf)
 			buf = ring_buffer_read_ptr(rbuf, pos);
 	}
 
-	if (p->hdrlen && p->hdrlen < line_length) {
+	buf = ring_buffer_read_ptr(rbuf, strip_front);
+	if (*buf == 'U' && p->hdrlen && p->hdrlen < line_length) {
 		strip_front += p->hdrlen;
 		line_length -= p->hdrlen;
 	}
