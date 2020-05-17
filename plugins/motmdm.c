@@ -331,10 +331,10 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 
+	data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->dlcs[VOICE_DLC]);
+
 	DBG("%p", modem);
 
-	data->sim = ofono_sim_create(modem, 0, "notyetmotorolamodem", data->dlcs[VOICE_DLC]);
-	ofono_sim_initialized_notify(data->sim);
 	ofono_voicecall_create(modem, 0, "motorolamodem", data->dlcs[VOICE_DLC]);
 #if 1
 	{
@@ -351,6 +351,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 #endif
 	
 	ofono_netreg_create(modem, OFONO_VENDOR_GENERIC, "motorolamodem", data->dlcs[VOICE_DLC]);
+	ofono_sim_initialized_notify(data->sim);
 	ofono_sim_inserted_notify(data->sim, TRUE);
 }
 
