@@ -323,7 +323,7 @@ static GAtSyntaxResult gsm_permissive_feed(GAtSyntax *syntax,
 			break;
 
 		case GSM_PERMISSIVE_STATE_PDU:
-			if (byte == '\r') {
+			if (byte == '\r' || byte == '\n') {
 				syntax->state = GSM_PERMISSIVE_STATE_IDLE;
 
 				i += 1;
