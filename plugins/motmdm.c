@@ -644,6 +644,8 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 
+	data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->dlcs[VOICE_DLC]);
+
 	DBG("%p", modem);
 
 	ofono_devinfo_create(modem, 0, "qmimodem", data->device);

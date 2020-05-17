@@ -2016,8 +2016,10 @@ static int motorola_sim_probe(struct ofono_sim *sim, unsigned int vendor,
 
 	ofono_sim_set_data(sim, sd);
 
+	DBG("########################################################################################################");
+
 	/* Query supported <fac>s */
-	return g_mot_chat_send(sd->chat, "AT+CLCK=?", clck_prefix,
+	return g_mot_chat_send(sd->chat, "U0000AT+FOOBAR", clck_prefix,
 				at_clck_query_cb, sim, NULL) ? 0 : -1;
 }
 
@@ -2076,7 +2078,7 @@ static void at_set_active_card_slot(struct ofono_sim *sim, unsigned int index,
 }
 
 static const struct ofono_sim_driver driver = {
-	.name			= "atmodem",
+	.name			= "motorolamodem",
 	.probe			= motorola_sim_probe,
 	.remove			= motorola_sim_remove,
 #if 0

@@ -60,7 +60,6 @@ static int motorolamodem_init(void)
 	motorola_sms_init();
 	motorola_sim_init();
 	motorola_netreg_init();
-	
 
 	return 0;
 }
