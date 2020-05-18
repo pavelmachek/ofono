@@ -343,6 +343,7 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 			g_at_chat_add_terminator(*chat, "ERROR=", 6, FALSE);
 			g_at_chat_add_terminator(*chat, "+CLCC:", -1, TRUE);
 			break;
+		case DLC_SMS_XMIT:
 		case DLC_SMS_RECV:
 			g_at_chat_add_hdrlen(*chat, 5);
 			g_at_chat_add_terminator(*chat, "+GCNMA=OK", 9, TRUE);

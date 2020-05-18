@@ -69,10 +69,14 @@ static void at_cnma_cb(gboolean ok, GAtResult *result, gpointer user_data)
 }
 
 /*
- * For acking messages, Android seems to use both AT+CNMA=0,0 and AT+GCNMA=1.
- * Maybe the difference is that AT+GCNMA=1 should be used for GSM and WCDMA
- * while AT+CNMA=0,0 should be used for CDMA networks. Note that the incoming
- * messages are also acked on the recv dlc.
+ * For acking messages, Android seems to use both AT+CNMA=0,0 and AT+GCNMA=1
+ * terminated with '\n' rather than '\r'. Maybe the difference is that
+ * AT+GCNMA=1 should be used for GSM and WCDMA while AT+CNMA=0,0 should be
+ * used for CDMA networks. Note that the incoming messages are also acked on
+ * the recv dlc on Android. However, we can also ack incoming messages on the
+ * xmit dlc to avoid mixing PDUs and commands on the recv dlc. Let's also
+ * wake the dlc before as otherwise we may not get any response from the
+ * modem.
  *
  * Returns "+GCNMA=OK" on success and "+GCMS=305" if nothing to ack.
  */
@@ -85,7 +89,8 @@ static inline void motorola_ack_delivery(struct ofono_sms *sms)
 	if (!motorola_qmi_sms_available(data))
 		return;
 
-	mot_at_chat_send(data->recv, "AT+GCNMA=1\n", none_prefix,
+	g_at_chat_set_wakeup_command(data->xmit, "AT+WAKE\r", 100, 500);
+	mot_at_chat_send(data->xmit, "AT+GCNMA=1", none_prefix,
 						at_cnma_cb, NULL, NULL);
 }
 
