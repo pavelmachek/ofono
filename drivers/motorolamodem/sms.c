@@ -47,16 +47,10 @@ static const char *gcms_prefix[] = { "+GCMS=", NULL };
 static const char *gcnma_prefix[] = { "+GCNMA=", NULL };
 
 struct sms_data {
+	struct ofono_modem *modem;
 	GAtChat *recv, *xmit;	/* dlc for incoming and outgoing messages */
 	unsigned int vendor;
-	struct ofono_sms *qmi_sms;
 };
-
-static bool motorola_qmi_sms_available(struct sms_data *data)
-{
-	struct ofono_sms *qmi_sms = data->qmi_sms;
-	return qmi_sms && (ofono_sms_get_data(qmi_sms) != NULL);
-}
 
 static void at_cnma_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
@@ -87,9 +81,6 @@ static void ack_sms_cb(gboolean ok, GAtResult *result, gpointer user_data)
 
 	DBG("");
 
-	if (!motorola_qmi_sms_available(data))
-		return;
-
 	mot_at_chat_send(data->xmit, "AT+GCNMA=1", gcnma_prefix,
 						at_cnma_cb, NULL, NULL);
 }
@@ -103,13 +94,7 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 {
 	struct ofono_sms *sms = user_data;
 	struct sms_data *data = ofono_sms_get_data(sms);
-	struct ofono_sms *qmi_sms = data->qmi_sms;
-
 	GAtResultIter iter;
-	const char *hexpdu;
-	unsigned char pdu[176];
-	int tpdu_len;
-	long pdu_len;
 
 	DBG("");
 
@@ -118,26 +103,11 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 	if (!g_at_result_iter_next(&iter, "~+GCMT="))
 		return;
 
-	if (!g_at_result_iter_next_number(&iter, &tpdu_len))
-		return;
-
-	hexpdu = g_at_result_pdu(result);
-
-	if (strlen(hexpdu) > sizeof(pdu) * 2) {
-		ofono_error("Invalid PDU: %s", hexpdu);
-		return;
-	}
-
-	decode_hex_own_buf(hexpdu, -1, &pdu_len, 0, pdu);
-	tpdu_len = pdu_len - 8;
-	DBG("Got PDU: %s tpdu_len: %d pdu_len: %li", hexpdu, tpdu_len, pdu_len);
-	if (motorola_qmi_sms_available(data)) {
+	if (mot_qmi_trigger_events(data->modem) > 0) {
 		DBG("Kicking SMS channel before acking");
 		mot_at_chat_send(data->xmit, "AT+GCNMA=?", gcms_prefix,
 							ack_sms_cb, data, NULL);
-		ofono_sms_deliver_notify(qmi_sms, pdu, pdu_len, tpdu_len);
-	} else
-		ofono_warn("Unable to receive SMS, no qmi instance");
+	}
 }
 
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
@@ -148,10 +118,10 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 
 	DBG("");
 	data = g_new0(struct sms_data, 1);
+	data->modem = param->modem;
 	data->recv = g_at_chat_clone(param->recv);
 	data->xmit = g_at_chat_clone(param->xmit);
 	data->vendor = vendor;
-	data->qmi_sms = param->qmi_sms;
 	ofono_sms_set_data(sms, data);
 	g_at_chat_register(data->recv, "~+GCMT=", receive_notify, TRUE, sms, NULL);
 

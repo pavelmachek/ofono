@@ -562,9 +562,10 @@ static void motmdm_post_sim(struct ofono_modem *modem)
 	ofono_radio_settings_create(modem, 0, "qmimodem", data->device);
 
 	/* Use qmimodem for sending and motorolamodem for receiving */
+	mot_sms->modem = modem;
 	mot_sms->recv = data->chat[DLC_SMS_RECV];
 	mot_sms->xmit = data->chat[DLC_SMS_XMIT];
-	mot_sms->qmi_sms = ofono_sms_create(modem, 0, "qmimodem", data->device);
+	ofono_sms_create(modem, 0, "qmimodem", data->device);
 	ofono_sms_create(modem, 0, "motorolamodem", mot_sms);
 
 	mw = ofono_message_waiting_create(modem);
