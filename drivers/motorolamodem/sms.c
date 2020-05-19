@@ -110,6 +110,22 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 	}
 }
 
+static void status_notify(GAtResult *result, gpointer user_data)
+{
+	struct ofono_sms *sms = user_data;
+	struct sms_data *data = ofono_sms_get_data(sms);
+	GAtResultIter iter;
+
+	DBG("");
+
+	g_at_result_iter_init(&iter, result);
+
+	if (!g_at_result_iter_next(&iter, "~+GSSR="))
+		return;
+
+	mot_qmi_trigger_events(data->modem);
+}
+
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 				void *user)
 {
@@ -124,6 +140,7 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	data->vendor = vendor;
 	ofono_sms_set_data(sms, data);
 	g_at_chat_register(data->recv, "~+GCMT=", receive_notify, TRUE, sms, NULL);
+	g_at_chat_register(data->recv, "~+GSSR=", status_notify, TRUE, sms, NULL);
 
 	return 0;
 }
