@@ -27,6 +27,8 @@ extern int mot_qmi_trigger_events(struct ofono_modem *modem);
 
 extern void motorola_netreg_init(void);
 extern void motorola_netreg_exit(void);
+extern void motorola_netmon_init(void);
+extern void motorola_netmon_exit(void);
 extern void motorola_voicecall_init(void);
 extern void motorola_voicecall_exit(void);
 
@@ -47,5 +49,10 @@ struct motorola_sms_params {
 
 struct motorola_netreg_params {
 	struct ofono_netreg *qmi_netreg;
+	GAtChat *recv;
+};
+
+struct motorola_netmon_params {
+	struct ofono_modem *modem;
 	GAtChat *recv;
 };
