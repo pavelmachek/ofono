@@ -43,7 +43,8 @@
 
 #include "motorolamodem.h"
 
-static const char *none_prefix[] = { NULL };
+static const char *gcms_prefix[] = { "+GCMS=", NULL };
+static const char *gcnma_prefix[] = { "+GCNMA=", NULL };
 
 struct sms_data {
 	GAtChat *recv, *xmit;	/* dlc for incoming and outgoing messages */
@@ -80,17 +81,16 @@ static void at_cnma_cb(gboolean ok, GAtResult *result, gpointer user_data)
  *
  * Returns "+GCNMA=OK" on success and "+GCMS=305" if nothing to ack.
  */
-static inline void motorola_ack_delivery(struct ofono_sms *sms)
+static void ack_sms_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
-	struct sms_data *data = ofono_sms_get_data(sms);
+	struct sms_data *data = user_data;
 
 	DBG("");
 
 	if (!motorola_qmi_sms_available(data))
 		return;
 
-	g_at_chat_set_wakeup_command(data->xmit, "AT+WAKE\r", 100, 500);
-	mot_at_chat_send(data->xmit, "AT+GCNMA=1", none_prefix,
+	mot_at_chat_send(data->xmit, "AT+GCNMA=1", gcnma_prefix,
 						at_cnma_cb, NULL, NULL);
 }
 
@@ -131,12 +131,13 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 	decode_hex_own_buf(hexpdu, -1, &pdu_len, 0, pdu);
 	tpdu_len = pdu_len - 8;
 	DBG("Got PDU: %s tpdu_len: %d pdu_len: %li", hexpdu, tpdu_len, pdu_len);
-	if (motorola_qmi_sms_available(data))
+	if (motorola_qmi_sms_available(data)) {
+		DBG("Kicking SMS channel before acking");
+		mot_at_chat_send(data->xmit, "AT+GCNMA=?", gcms_prefix,
+							ack_sms_cb, data, NULL);
 		ofono_sms_deliver_notify(qmi_sms, pdu, pdu_len, tpdu_len);
-	else
+	} else
 		ofono_warn("Unable to receive SMS, no qmi instance");
-
-	motorola_ack_delivery(sms);
 }
 
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
