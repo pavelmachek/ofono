@@ -30,6 +30,9 @@
 #include <ofono/modem.h>
 #include <ofono/sms.h>
 
+#include <glib.h>
+#include <smsutil.h>
+
 #include "qmi.h"
 #include "wms.h"
 
@@ -644,6 +647,7 @@ static void event_notify(struct qmi_result *result, void *user_data)
 
 		message = qmi_result_get(result, QMI_WMS_RESULT_MESSAGE, NULL);
 		if (message) {
+			struct sms s;
 			uint16_t plen;
 
 			plen = GUINT16_FROM_LE(message->msg_length);
@@ -654,8 +658,25 @@ static void event_notify(struct qmi_result *result, void *user_data)
 			DBG("msg format %d PDU length %d",
 				message->msg_format, plen);
 
-			ofono_sms_deliver_notify(sms, message->msg_data,
-							plen, plen);
+			if (!sms_decode(message->msg_data, plen,
+							FALSE, plen, &s)) {
+				ofono_error("Unable to decode PDU");
+				return;
+			}
+
+			switch (s.type) {
+			case SMS_TYPE_DELIVER:
+				ofono_sms_deliver_notify(sms, message->msg_data,
+								plen, plen);
+				break;
+			case SMS_TYPE_STATUS_REPORT:
+				ofono_sms_status_notify(sms, message->msg_data,
+								plen, plen);
+				break;
+			default:
+				ofono_error("Unhandled message %d", s.type);
+				return;
+			}
 		}
 	}
 }
