@@ -1,0 +1,40 @@
+
+This is really "interesting". The protocol looks like AT commands on
+the first look, and some commands are same (ATD does the call, ATA
+answers it), but often they are subtly different (ATD takes ,0
+parameter to work with caller id), and overall protocol is very
+different.
+
+1) protocol is packet-based, not character-based.
+
+Whole command needs to be sent as one packet, in one write() call to
+the kernel. Replies came back in packets, too, you can get them with
+single read() call.
+
+2) protocol semantics is really different.
+
+You don't have command, responses to the command, then response
+terminator. You send one packet and get one packet with the reply.
+
+In AT you got:
+
+> AT+TELL_ME_SOMETHING
+< IT_IS_42
+< OK
+
+While in motmdm it is:
+
+> U0005AT+TELL_ME
+< U0005OK:IT_IS_42
+
+
+AFAICT lot of complexity in atchat is collecting the multiple lines,
+including handling stuff like
+
+IT_IS="Arbitrary
+text including
+OK
+here"
+OK
+
+I don't believe we need that for d4.
