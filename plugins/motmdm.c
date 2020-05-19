@@ -58,6 +58,7 @@
 #include <drivers/qmimodem/qmi.h>
 #include <drivers/qmimodem/dms.h>
 #include <drivers/qmimodem/wda.h>
+#include <drivers/qmimodem/wms.h>
 #include <drivers/qmimodem/util.h>
 #include <drivers/motorolamodem/motorolamodem.h>
 
@@ -79,7 +80,7 @@ static const char *devices[] = {
 
 struct motmdm_data {
 	struct qmi_device *device;
-	struct qmi_service *dms;
+	struct qmi_service *dms, *wms;
 	struct motorola_netreg_params mot_netreg;
 	struct motorola_sms_params mot_sms;
 	GAtChat *chat[NUM_CHAT];
@@ -118,6 +119,7 @@ static void motmdm_remove(struct ofono_modem *modem)
 
 	ofono_modem_set_data(modem, NULL);
 
+	qmi_service_unref(data->wms);
 	qmi_service_unref(data->dms);
 
 	qmi_device_unref(data->device);
@@ -146,6 +148,7 @@ static void shutdown_device(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
+	qmi_service_unref(data->wms);
 	qmi_service_unref(data->dms);
 	data->dms = NULL;
 
@@ -268,6 +271,40 @@ static void create_shared_dms(void *user_data)
 				  create_dms_cb, modem, NULL);
 }
 
+static void create_wms_cb(struct qmi_service *service, void *user_data)
+{
+	struct ofono_modem *modem = user_data;
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+
+	DBG("");
+
+	if (!service)
+		shutdown_device(modem);
+
+	data->wms = qmi_service_ref(service);
+}
+
+static void create_shared_wms(void *user_data)
+{
+	struct ofono_modem *modem = user_data;
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+
+	qmi_service_create_shared(data->device, QMI_SERVICE_WMS,
+				  create_wms_cb, modem, NULL);
+}
+
+/* We use a dummy SMSC query to trigger pending qmimodem notifications */
+int mot_qmi_trigger_events(struct ofono_modem *modem)
+{
+	struct motmdm_data *data = ofono_modem_get_data(modem);
+
+	if (data->wms == NULL)
+		return -ENODEV;
+
+	return qmi_service_send(data->wms, QMI_WMS_GET_SMSC_ADDR, NULL,
+						NULL, NULL, g_free);
+};
+
 static void discover_cb(void *user_data)
 {
 	struct ofono_modem *modem = user_data;
@@ -279,6 +316,8 @@ static void discover_cb(void *user_data)
 		qmi_device_sync(data->device, create_shared_dms, modem);
 	else
 		create_shared_dms(modem);
+
+	create_shared_wms(modem);
 }
 
 static void motmdm_at_debug(const char *str, void *user_data)
@@ -433,6 +472,8 @@ static int motmdm_disable(struct ofono_modem *modem)
 
 	motmdm_close_dlc_devices(modem);
 
+	qmi_service_cancel_all(data->wms);
+	qmi_service_unregister_all(data->wms);
 	qmi_service_cancel_all(data->dms);
 	qmi_service_unregister_all(data->dms);
 

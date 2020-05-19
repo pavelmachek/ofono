@@ -19,6 +19,12 @@
  *
  */
 
+#include <stdint.h>
+
+struct ofono_modem;
+
+extern int mot_qmi_trigger_events(struct ofono_modem *modem);
+
 extern void motorola_netreg_init(void);
 extern void motorola_netreg_exit(void);
 extern void motorola_voicecall_init(void);
