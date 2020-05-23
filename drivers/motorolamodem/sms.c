@@ -44,6 +44,8 @@
 
 #include "motorolamodem.h"
 
+#include <drivers/atmodem/atutil.h>
+
 static const char *none_prefix[] = { NULL };
 
 struct sms_data {

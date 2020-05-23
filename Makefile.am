@@ -522,7 +522,6 @@ builtin_sources += drivers/motorolamodem/motorolamodem.c \
 			drivers/motorolamodem/network-registration.c \
 			drivers/motorolamodem/netmon.c \
 			drivers/motorolamodem/voicecall.c \
-			drivers/motorolamodem/network-registration.c \
 			drivers/motorolamodem/sms.c
 endif
 
@@ -534,9 +533,6 @@ builtin_sources += plugins/wavecom.c
 
 builtin_modules += calypso
 builtin_sources += plugins/calypso.c
-
-builtin_modules += motmdm
-builtin_sources += plugins/motmdm.c
 
 builtin_modules += mbm
 builtin_sources += plugins/mbm.c

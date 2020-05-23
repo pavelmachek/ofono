@@ -27,7 +27,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <gatchat.h>
 #include <motchat.h>
 #include <gattty.h>
 #include <unistd.h>
@@ -82,20 +81,19 @@ struct motmdm_data {
 	struct motorola_netreg_params mot_netreg;
 	struct motorola_netmon_params mot_netmon;
 	struct motorola_sms_params mot_sms;
-	GAtChat *chat[NUM_CHAT];
+	GMotChat *chat[NUM_CHAT];
 	unsigned long features;
 	unsigned int discover_attempts;
 	uint8_t oper_mode;
-};
 
-static char *debug_prefixes[NUM_DLC] = { "Voice: ", "InSMS: ", "OutSMS: " };
-static char *devices[NUM_DLC] = { "/dev/gsmtty1", "/dev/gsmtty9", "/dev/gsmtty3" };
-
-struct motmdm_data {
-	GMotChat *dlcs[NUM_DLC];
+	GMotChat *dlcs[NUM_DLC]; /* FIXME !! */
 	struct ofono_sim *sim;
 	int initialized;
 };
+
+enum iface { VOICE_DLC, INSMS_DLC, OUTSMS_DLC }; /* FIXME */
+static char *debug_prefixes[NUM_DLC] = { "Voice: ", "InSMS: ", "OutSMS: " };
+static char *devices[NUM_DLC] = { "/dev/gsmtty1", "/dev/gsmtty9", "/dev/gsmtty3" };
 
 static const char *none_prefix[] = { NULL };
 
@@ -360,8 +358,7 @@ static int motmdm_open_device(struct ofono_modem *modem, const char *device,
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	GIOChannel *channel;
-	GAtSyntax *syntax;
-	GAtChat *chat = NULL;
+	GMotChat *chat = NULL;
 
 	DBG("device=%s", device);
 
@@ -369,19 +366,13 @@ static int motmdm_open_device(struct ofono_modem *modem, const char *device,
 	if (channel == NULL)
 		return -EIO;
 
-	if (index == USB_AT)
-		syntax = g_at_syntax_new_gsm_permissive();
-	else
-		syntax = g_at_syntax_new_motmdm_permissive();
-
-	chat = g_at_chat_new(channel, syntax);
-	g_at_syntax_unref(syntax);
+	chat = g_mot_chat_new(channel);
 	g_io_channel_unref(channel);
 	if (chat == NULL)
 		return -EIO;
 
 	if (getenv("OFONO_AT_DEBUG"))
-		g_at_chat_set_debug(chat, motmdm_at_debug, "");
+		g_mot_chat_set_debug(chat, motmdm_at_debug, "");
 
 	data->chat[index] = chat;
 
@@ -392,8 +383,10 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i, err, found = 0;
-	GAtChat **chat;
+	GMotChat **chat;
 
+	/* FIXME !! */
+#if 0
 	for (i = 0; i < NUM_DLC; i++) {
 		chat = &data->chat[i];
 
@@ -423,14 +416,14 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 
 		found++;
 	}
-
+#endif
 	return found;
 }
 
 static void motmdm_close_dlc_devices(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
-	GAtChat *chat;
+	GMotChat *chat;
 	int i;
 
 	for (i = 0; i < NUM_DLC; i++) {
@@ -468,7 +461,8 @@ static int motmdm_enable(struct ofono_modem *modem)
 	qmi_device_set_close_on_unref(data->device, true);
 
 	qmi_device_discover(data->device, discover_cb, modem, NULL);
-
+#if 0
+	/* FIXME */
 	err = motmdm_open_device(modem,
 			ofono_modem_get_string(modem, "Modem"),
 				USB_AT);
@@ -478,7 +472,7 @@ static int motmdm_enable(struct ofono_modem *modem)
 	err = motmdm_open_dlc_devices(modem);
 	if (err < NUM_DLC)
 		ofono_warn("All DLC freatures not available\n");
-
+#endif
 	return -EINPROGRESS;
 }
 
@@ -527,6 +521,8 @@ static void modem_initialize(struct ofono_modem *modem)
 	GHashTable *options;
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i;
+
+	motmdm_initialize_qmi(modem);
 
 	DBG("");
 
@@ -625,7 +621,7 @@ static void modem_verify(struct ofono_modem *modem)
 }
 
 /* power up hardware */
-static int motmdm_enable(struct ofono_modem *modem)
+static int motmdm_enable_at(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 
@@ -665,6 +661,7 @@ static int motmdm_disable(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	struct qmi_param *param;
+	int i;
 
 	/* FIXME: we should probably turn the modem off */
 
@@ -710,7 +707,7 @@ static void set_online_cb(struct qmi_result *result, void *user_data)
 
 struct ofono_sms *sms_hack;
 
-#if 0
+
 static void motmdm_set_online(struct ofono_modem *modem, ofono_bool_t online,
 				ofono_modem_online_cb_t cb, void *user_data)
 {
@@ -741,7 +738,6 @@ error:
 
 	g_free(cbd);
 }
-#endif
 
 /* Only some QMI features are usable, voicecall and sms are custom */
 static void motmdm_pre_sim(struct ofono_modem *modem)

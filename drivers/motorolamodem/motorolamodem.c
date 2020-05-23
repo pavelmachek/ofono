@@ -36,7 +36,7 @@
 
 #include "motorolamodem.h"
 
-guint mot_at_chat_send(GAtChat *chat, const char *cmd,
+guint mot_at_chat_send(GMotChat *chat, const char *cmd,
 				const char **valid_resp, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify)
 {

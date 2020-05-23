@@ -44,6 +44,8 @@
 #include "common.h"
 #include "motorolamodem.h"
 
+#include <drivers/atmodem/atutil.h>
+
 static const char *none_prefix[] = { NULL };
 static const char *creg_prefix[] = { "U0000~+CREG=", NULL };
 
