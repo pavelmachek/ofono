@@ -42,6 +42,8 @@
 
 #include "motorolamodem.h"
 
+#include <drivers/atmodem/atutil.h>
+
 #define EF_STATUS_INVALIDATED 0
 #define EF_STATUS_VALID 1
 

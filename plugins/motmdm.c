@@ -83,7 +83,7 @@ struct motmdm_data {
 	unsigned int discover_attempts;
 	uint8_t oper_mode;
 
-	struct ofono_sim *sim;
+	//struct ofono_sim *sim;
 	int initialized;
 };
 
@@ -644,7 +644,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 
-	data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->dlcs[VOICE_DLC]);
+	//data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
 
 	DBG("%p", modem);
 
@@ -674,9 +674,9 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 	
 	ofono_netreg_create(modem, OFONO_VENDOR_GENERIC, "motorolamodem", data->chat[DLC_VOICE]);
 	DBG("Should fake sim inserted?");
-	data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
+	//data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
 	// Need data->sim initialization, first
-	ofono_sim_inserted_notify(data->sim, TRUE);
+	//ofono_sim_inserted_notify(data->sim, TRUE);
 }
 
 static void motmdm_post_sim(struct ofono_modem *modem)
