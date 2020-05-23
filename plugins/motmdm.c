@@ -280,6 +280,7 @@ static void create_dms_cb(struct qmi_service *service, void *user_data)
 		return;
 
 error:
+	DBG("dms: bad, shutting down");
 	shutdown_device(modem);
 }
 
