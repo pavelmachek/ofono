@@ -792,8 +792,6 @@ ofono_bool_t ofono_modem_get_online(struct ofono_modem *modem)
 	if (modem == NULL)
 		return FALSE;
 
-	return TRUE; /* HACK! */
-
 	return modem->online;
 }
 
