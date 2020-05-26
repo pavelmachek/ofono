@@ -554,7 +554,7 @@ static int motmdm_enable(struct ofono_modem *modem)
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
 
-	return 0;
+	return -EINPROGRESS;
 }
 
 static int motmdm_disable(struct ofono_modem *modem)
