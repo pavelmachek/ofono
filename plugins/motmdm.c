@@ -605,7 +605,7 @@ static void set_online_cb(struct qmi_result *result, void *user_data)
 		CALLBACK_WITH_SUCCESS(cb, cbd->data);
 }
 
-struct ofono_sms *sms_hack;
+struct ofono_sms *sms_hack; /* FIXME: make local? */
 
 
 static void motmdm_set_online(struct ofono_modem *modem, ofono_bool_t online,
@@ -672,7 +672,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 	}
 #endif
 	
-	ofono_netreg_create(modem, OFONO_VENDOR_GENERIC, "motorolamodem", data->chat[DLC_VOICE]);
+	//ofono_netreg_create(modem, OFONO_VENDOR_GENERIC, "motorolamodem", data->chat[DLC_VOICE]);
 	DBG("Should fake sim inserted?");
 	//data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
 	// Need data->sim initialization, first
