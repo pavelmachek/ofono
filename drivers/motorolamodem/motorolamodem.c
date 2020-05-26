@@ -24,7 +24,6 @@
 #endif
 
 #include <glib.h>
-#include <motchat.h>
 #include <gatchat.h>
 #include <stdio.h>
 

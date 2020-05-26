@@ -22,7 +22,7 @@
 #ifndef __MOTOROLAMODEM_H
 #define __MOTOROLAMODEM_H
 #include <stdint.h>
-#include <motchat.h>
+#include <drivers/motorolamodem/motchat.h>
 
 struct ofono_modem;
 

@@ -37,6 +37,8 @@
 
 #include <glib.h>
 
+#include <ofono/log.h>
+
 #include "ringbuffer.h"
 #include "motchat.h"
 #include "gatio.h"
@@ -440,7 +442,7 @@ static void have_line(struct mot_chat *p, char *str)
 	if (str == NULL)
 		return;
 
-	printf("Have line: %s\n", str);
+	DBG("Have line: %s", str);
 
 	if (str[0] == 'U' && isdigit(str[1]) && isdigit(str[2]) && isdigit(str[3]) && isdigit(str[4])) {
 	  str[1] = '0';
@@ -543,7 +545,7 @@ static void new_bytes(struct ring_buffer *rbuf, gpointer user_data)
 
 	while (p->suspended == FALSE && (p->read_so_far < len)) {
 		gsize rbytes = MIN(len - p->read_so_far, wrap - p->read_so_far);
-		printf("new bytes %d\n", rbytes);
+		DBG("new bytes %d", rbytes);
 
 		buf += rbytes;
 		p->read_so_far += rbytes;
