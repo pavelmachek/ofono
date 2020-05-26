@@ -28,7 +28,7 @@ extern "C" {
 
 /**
  * SECTION:log
- * @title: Logging premitives
+ * @title: Logging primitives
  * @short_description: Functions for logging error and debug information
  */
 
