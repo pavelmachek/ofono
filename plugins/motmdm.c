@@ -101,7 +101,7 @@ static void motmdm_debug(const char *str, void *user_data)
 
 static int motmdm_probe(struct ofono_modem *modem)
 {
-	const char *device;
+	const char *device; /* FIXME: remove unused device stuff */
 	struct motmdm_data *data;
 
 	DBG("motmdm: probe\n");
@@ -454,7 +454,7 @@ static void power_disable_cb(struct qmi_result *result, void *user_data)
 	shutdown_device(modem);
 }
 
-static void cstat_notify(GAtResult *result, gpointer user_data)
+static void cstat_notify(GAtResult *result, gpointer user_data) /* FIXME: delete */
 {
 	GAtResultIter iter;
 	int enabled, i;
@@ -482,7 +482,7 @@ static void scrn_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	DBG("");
 }
 
-static void modem_initialize(struct ofono_modem *modem)
+static void modem_initialize(struct ofono_modem *modem) /* FIXME! */
 {
 	GMotChat *chat;
 	const char *device;
@@ -506,7 +506,7 @@ static void foo_cb(gboolean ok, GAtResult *result, gpointer user_data)
 	DBG("");
 	if (++data->initialized == NUM_CHAT) {
 		DBG("All channels working");
-		ofono_modem_set_powered(modem, TRUE);
+		//ofono_modem_set_powered(modem, TRUE);
 	}
 }
 
@@ -549,7 +549,7 @@ static int motmdm_enable(struct ofono_modem *modem)
 	//g_mot_chat_send(data->chat[DLC_VOICE], "U0000AT+SCRN=1", none_prefix, scrn_cb, modem, NULL);
 	if (0)
 		g_mot_chat_send(data->chat[DLC_VOICE], "U0000ATE0", NULL, NULL, modem, NULL);
-	DBG("sending cfun\n");
+	DBG("sending cfun\n"); /* FIXME: let qmi do that? */
 	g_mot_chat_send(data->chat[DLC_VOICE], "U0000AT+CFUN=1", none_prefix, cfun_cb, modem, NULL);
 
 	DBG("setup_modem !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done\n");
