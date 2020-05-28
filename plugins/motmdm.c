@@ -644,20 +644,14 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 
-	//data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
-
 	DBG("%p", modem);
 
+	//data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
 	ofono_devinfo_create(modem, 0, "qmimodem", data->device);
 	ofono_sim_create(modem, 0, "qmimodem", data->device);
 	ofono_location_reporting_create(modem, 0, "qmimodem", data->device);
 
 	ofono_voicecall_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
-#if 0
-	data->sim = ofono_sim_create(modem, 0, "notyetmotorolamodem", data->chat[DLC_VOICE]);
-	ofono_sim_initialized_notify(data->sim);
-
-#endif
 #if 1
 	{
 		struct motorola_sms_params motorola_sms_params = {
@@ -672,11 +666,7 @@ static void motmdm_pre_sim(struct ofono_modem *modem)
 	}
 #endif
 	
-	//ofono_netreg_create(modem, OFONO_VENDOR_GENERIC, "motorolamodem", data->chat[DLC_VOICE]);
 	DBG("Should fake sim inserted?");
-	//data->sim = ofono_sim_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
-	// Need data->sim initialization, first
-	//ofono_sim_inserted_notify(data->sim, TRUE);
 }
 
 static void motmdm_post_sim(struct ofono_modem *modem)
@@ -716,6 +706,7 @@ static void motmdm_post_online(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
+#if 0
 	mot_netreg->recv = data->chat[DLC_VOICE];
 	mot_netreg->qmi_netreg = ofono_netreg_create(modem, 0, "qmimodem",
 							data->device);
@@ -725,7 +716,7 @@ static void motmdm_post_online(struct ofono_modem *modem)
 	mot_netmon->modem = modem;
 	mot_netmon->recv = data->chat[DLC_VOICE];
 	ofono_netmon_create(modem, 0, "motorolamodem", mot_netmon);
-
+#endif
 	gprs = ofono_gprs_create(modem, 0, "qmimodem", data->device);
 	gc = ofono_gprs_context_create(modem, 0, "qmimodem",
 					data->device);
