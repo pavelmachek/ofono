@@ -706,7 +706,9 @@ static void motmdm_post_online(struct ofono_modem *modem)
 
 	DBG("%p", modem);
 
-#if 0
+#if 1
+	ofono_netreg_create(modem, 0, "motorolamodem", data->chat[DLC_VOICE]);
+#else
 	mot_netreg->recv = data->chat[DLC_VOICE];
 	mot_netreg->qmi_netreg = ofono_netreg_create(modem, 0, "qmimodem",
 							data->device);
