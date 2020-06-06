@@ -29,6 +29,8 @@ extern void motorola_netreg_init(void);
 extern void motorola_netreg_exit(void);
 extern void motorola_netmon_init(void);
 extern void motorola_netmon_exit(void);
+extern void motorola_sim_init(void);
+extern void motorola_sim_exit(void);
 extern void motorola_voicecall_init(void);
 extern void motorola_voicecall_exit(void);
 
@@ -40,6 +42,11 @@ extern void motorola_sms_init(void);
 extern void motorola_sms_exit(void);
 
 struct ofono_sms;
+
+struct motorola_sim_params {
+	struct ofono_modem *modem;
+	GAtChat *recv;
+};
 
 struct motorola_sms_params {
 	struct ofono_modem *modem;

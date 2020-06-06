@@ -66,21 +66,24 @@ enum motmdm_chat {
 	DLC_VOICE,
 	DLC_SMS_RECV,
 	DLC_SMS_XMIT,
+	DLC_SIM,
 	USB_AT,
 	NUM_CHAT,
 };
 
-#define NUM_DLC		(DLC_SMS_XMIT + 1)
+#define NUM_DLC		(DLC_SIM + 1)
 
 static const char *devices[] = {
 	"/dev/gsmtty1",
 	"/dev/gsmtty9",
 	"/dev/gsmtty3",
+	"/dev/gsmtty10",
 };
 
 struct motmdm_data {
 	struct qmi_device *device;
 	struct qmi_service *dms, *wms;
+	struct motorola_sim_params mot_sim;
 	struct motorola_netreg_params mot_netreg;
 	struct motorola_netmon_params mot_netmon;
 	struct motorola_sms_params mot_sms;
@@ -390,6 +393,10 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 			g_at_chat_add_terminator(*chat, "+GCNMA=OK", 9, TRUE);
 			g_at_chat_add_terminator(*chat, "+GCNMA=305", 10, FALSE);
 			break;
+		case DLC_SIM:
+			g_at_chat_add_hdrlen(*chat, 5);
+			g_at_chat_add_terminator(*chat, "ERROR=", 6, FALSE);
+			break;
 		default:
 			break;
 		}
@@ -540,11 +547,15 @@ error:
 static void motmdm_pre_sim(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
+	struct motorola_sim_params *mot_sim = &data->mot_sim;
 
 	DBG("%p", modem);
 
 	ofono_devinfo_create(modem, 0, "qmimodem", data->device);
 	ofono_sim_create(modem, 0, "qmimodem", data->device);
+	mot_sim->modem = modem;
+	mot_sim->recv = data->chat[DLC_SIM];
+	ofono_sim_create(modem, 0, "motorolamodem", mot_sim);
 	ofono_location_reporting_create(modem, 0, "qmimodem", data->device);
 
 	ofono_voicecall_create(modem, OFONO_VENDOR_MOTMDM, "motorolamodem",

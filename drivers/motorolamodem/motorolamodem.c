@@ -53,6 +53,7 @@ guint mot_at_chat_send(GAtChat *chat, const char *cmd,
 
 static int motorolamodem_init(void)
 {
+	motorola_sim_init();
 	motorola_netreg_init();
 	motorola_netmon_init();
 	motorola_voicecall_init();
@@ -67,6 +68,7 @@ static void motorolamodem_exit(void)
 	motorola_voicecall_exit();
 	motorola_netmon_exit();
 	motorola_netreg_exit();
+	motorola_sim_exit();
 }
 
 OFONO_PLUGIN_DEFINE(motorolamodem, "Motorola modem driver", VERSION,
