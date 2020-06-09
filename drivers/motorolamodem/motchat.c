@@ -355,7 +355,7 @@ static gboolean mot_chat_match_notify(struct mot_chat *chat, char *line)
 		}
 
 		if (result.lines == NULL)
-			result.lines = g_slist_prepend(NULL, line);
+			result.lines = g_slist_prepend(NULL, line+5);
 
 		g_slist_foreach(notify->nodes, at_notify_call_callback,
 					&result);
