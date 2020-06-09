@@ -346,7 +346,7 @@ static gboolean mot_chat_match_notify(struct mot_chat *chat, char *line)
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		notify = value;
 
-		if (!g_str_has_prefix(line, key))
+		if (!g_str_has_prefix(line+5, key))
 			continue;
 
 		if (notify->pdu) {
