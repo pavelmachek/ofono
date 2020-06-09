@@ -36,6 +36,7 @@
 #include "gatchat.h"
 #include "gatresult.h"
 
+#include "motchat.h"
 #include "motorolamodem.h"
 
 struct netreg_data {
@@ -90,7 +91,7 @@ static int motorola_netreg_probe(struct ofono_netreg *netreg,
 	data = g_new0(struct netreg_data, 1);
 	if (data == NULL)
 		return -ENOMEM;
-	data->recv = g_at_chat_clone(param->recv);
+	data->recv = g_mot_chat_clone(param->recv);
 	data->qmi_netreg = param->qmi_netreg;
 	ofono_netreg_set_data(netreg, data);
 	g_at_chat_register(data->recv, "~+RSSI=", receive_notify,

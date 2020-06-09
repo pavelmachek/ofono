@@ -38,7 +38,7 @@
 #include "smsutil.h"
 #include "util.h"
 
-#include "gatchat.h"
+#include "motchat.h"
 #include "gatresult.h"
 
 #include "motorolamodem.h"
@@ -48,7 +48,7 @@ static const char *gcnma_prefix[] = { "+GCNMA=", NULL };
 
 struct sms_data {
 	struct ofono_modem *modem;
-	GAtChat *recv, *xmit;	/* dlc for incoming and outgoing messages */
+	GMotChat *recv, *xmit;	/* dlc for incoming and outgoing messages */
 	unsigned int vendor;
 };
 
@@ -98,9 +98,9 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 
 	DBG("");
 
-	g_at_result_iter_init(&iter, result);
+	g_mot_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "~+GCMT="))
+	if (!g_mot_result_iter_next(&iter, "~+GCMT="))
 		return;
 
 	if (mot_qmi_trigger_events(data->modem) > 0) {
@@ -118,9 +118,9 @@ static void status_notify(GAtResult *result, gpointer user_data)
 
 	DBG("");
 
-	g_at_result_iter_init(&iter, result);
+	g_mot_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "~+GSSR="))
+	if (!g_mot_result_iter_next(&iter, "~+GSSR="))
 		return;
 
 	mot_qmi_trigger_events(data->modem);
@@ -135,12 +135,12 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	DBG("");
 	data = g_new0(struct sms_data, 1);
 	data->modem = param->modem;
-	data->recv = g_at_chat_clone(param->recv);
-	data->xmit = g_at_chat_clone(param->xmit);
+	data->recv = g_mot_chat_clone(param->recv);
+	data->xmit = g_mot_chat_clone(param->xmit);
 	data->vendor = vendor;
 	ofono_sms_set_data(sms, data);
-	g_at_chat_register(data->recv, "~+GCMT=", receive_notify, TRUE, sms, NULL);
-	g_at_chat_register(data->recv, "~+GSSR=", status_notify, TRUE, sms, NULL);
+	g_mot_chat_register(data->recv, "~+GCMT=", receive_notify, TRUE, sms, NULL);
+	g_mot_chat_register(data->recv, "~+GSSR=", status_notify, TRUE, sms, NULL);
 
 	return 0;
 }
@@ -150,8 +150,8 @@ static void motorola_sms_remove(struct ofono_sms *sms)
 	struct sms_data *data = ofono_sms_get_data(sms);
 
 	DBG("");
-	g_at_chat_unref(data->recv);
-	g_at_chat_unref(data->xmit);
+	g_mot_chat_unref(data->recv);
+	g_mot_chat_unref(data->xmit);
 	g_free(data);
 
 	ofono_sms_set_data(sms, NULL);

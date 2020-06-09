@@ -35,7 +35,7 @@
 #include <ofono/modem.h>
 #include <ofono/sim.h>
 
-#include "gatchat.h"
+#include "motchat.h"
 #include "gatresult.h"
 #include "util.h"
 
@@ -43,7 +43,7 @@
 
 struct sim_data {
 	struct ofono_modem *modem;
-	GAtChat *recv;
+	GMotChat *recv;
 };
 
 static void receive_notify(GAtResult *result, gpointer user_data)
@@ -54,9 +54,9 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 
 	DBG("");
 
-	g_at_result_iter_init(&iter, result);
+	g_mot_result_iter_init(&iter, result);
 
-	if (!g_at_result_iter_next(&iter, "~+MSIM="))
+	if (!g_mot_result_iter_next(&iter, "~+MSIM="))
 		return;
 
 	mot_qmi_trigger_events(data->modem);
@@ -74,9 +74,9 @@ static int motorola_sim_probe(struct ofono_sim *sim,
 	if (data == NULL)
 		return -ENOMEM;
 	data->modem = param->modem;
-	data->recv = g_at_chat_clone(param->recv);
+	data->recv = g_mot_chat_clone(param->recv);
 	ofono_sim_set_data(sim, data);
-	g_at_chat_register(data->recv, "~+MSIM=", receive_notify,
+	g_mot_chat_register(data->recv, "~+MSIM=", receive_notify,
 						TRUE, sim, NULL);
 
 	return 0;
@@ -87,7 +87,7 @@ static void motorola_sim_remove(struct ofono_sim *sim)
 	struct sim_data *data = ofono_sim_get_data(sim);
 
 	ofono_sim_set_data(sim, NULL);
-	g_at_chat_unref(data->recv);
+	g_mot_chat_unref(data->recv);
 	g_free(data);
 }
 

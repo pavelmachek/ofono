@@ -26,6 +26,8 @@
 extern "C" {
 #endif
 
+#include "gatio.h"
+
 /*!
  * Opens a serial port given by tty.  If options is NULL, then the serial port
  * is opened in raw mode.  Otherwise the options are parsed and set accordingly

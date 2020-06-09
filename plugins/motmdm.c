@@ -25,7 +25,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <gatchat.h>
 #include <gattty.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -60,6 +59,7 @@
 #include <drivers/qmimodem/wda.h>
 #include <drivers/qmimodem/wms.h>
 #include <drivers/qmimodem/util.h>
+#include <drivers/motorolamodem/motchat.h>
 #include <drivers/motorolamodem/motorolamodem.h>
 
 enum motmdm_chat {
@@ -87,7 +87,7 @@ struct motmdm_data {
 	struct motorola_netreg_params mot_netreg;
 	struct motorola_netmon_params mot_netmon;
 	struct motorola_sms_params mot_sms;
-	GAtChat *chat[NUM_CHAT];
+	GMotChat *chat[NUM_CHAT];
 	unsigned long features;
 	unsigned int discover_attempts;
 	uint8_t oper_mode;
@@ -336,28 +336,21 @@ static int motmdm_open_device(struct ofono_modem *modem, const char *device,
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	GIOChannel *channel;
-	GAtSyntax *syntax;
-	GAtChat *chat = NULL;
+	GMotChat *chat = NULL;
 
 	DBG("device=%s", device);
 
-	channel = g_at_tty_open(device, NULL);
+	channel = g_mot_tty_open(device, NULL);
 	if (channel == NULL)
 		return -EIO;
 
-	if (index == USB_AT)
-		syntax = g_at_syntax_new_gsm_permissive();
-	else
-		syntax = g_at_syntax_new_motmdm_permissive();
-
-	chat = g_at_chat_new(channel, syntax);
-	g_at_syntax_unref(syntax);
+	chat = g_mot_chat_new(channel);
 	g_io_channel_unref(channel);
 	if (chat == NULL)
 		return -EIO;
 
 	if (getenv("OFONO_AT_DEBUG"))
-		g_at_chat_set_debug(chat, motmdm_at_debug, "");
+		g_mot_chat_set_debug(chat, motmdm_at_debug, "");
 
 	data->chat[index] = chat;
 
@@ -368,7 +361,7 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
 	int i, err, found = 0;
-	GAtChat **chat;
+	GMotChat **chat;
 
 	for (i = 0; i < NUM_DLC; i++) {
 		chat = &data->chat[i];
@@ -381,21 +374,21 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 
 		switch(i) {
 		case DLC_VOICE:
-			g_at_chat_add_delimiter(*chat, ":");
-			g_at_chat_add_hdrlen(*chat, 5);
-			g_at_chat_add_terminator(*chat, "ERROR=", 6, FALSE);
-			g_at_chat_add_terminator(*chat, "+CLCC:", -1, TRUE);
+			g_mot_chat_add_delimiter(*chat, ":");
+			g_mot_chat_add_hdrlen(*chat, 5);
+			g_mot_chat_add_terminator(*chat, "ERROR=", 6, FALSE);
+			g_mot_chat_add_terminator(*chat, "+CLCC:", -1, TRUE);
 			break;
 		case DLC_SMS_XMIT:
 		case DLC_SMS_RECV:
-			g_at_chat_add_hdrlen(*chat, 5);
-			g_at_chat_add_terminator(*chat, "+GCMS=305", 10, TRUE);
-			g_at_chat_add_terminator(*chat, "+GCNMA=OK", 9, TRUE);
-			g_at_chat_add_terminator(*chat, "+GCNMA=305", 10, FALSE);
+			g_mot_chat_add_hdrlen(*chat, 5);
+			g_mot_chat_add_terminator(*chat, "+GCMS=305", 10, TRUE);
+			g_mot_chat_add_terminator(*chat, "+GCNMA=OK", 9, TRUE);
+			g_mot_chat_add_terminator(*chat, "+GCNMA=305", 10, FALSE);
 			break;
 		case DLC_SIM:
-			g_at_chat_add_hdrlen(*chat, 5);
-			g_at_chat_add_terminator(*chat, "ERROR=", 6, FALSE);
+			g_mot_chat_add_hdrlen(*chat, 5);
+			g_mot_chat_add_terminator(*chat, "ERROR=", 6, FALSE);
 			break;
 		default:
 			break;
@@ -410,13 +403,13 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 static void motmdm_close_dlc_devices(struct ofono_modem *modem)
 {
 	struct motmdm_data *data = ofono_modem_get_data(modem);
-	GAtChat *chat;
+	GMotChat *chat;
 	int i;
 
 	for (i = 0; i < NUM_DLC; i++) {
 		chat = data->chat[i];
-		g_at_chat_cancel_all(chat);
-		g_at_chat_unregister_all(chat);
+		g_mot_chat_cancel_all(chat);
+		g_mot_chat_unregister_all(chat);
 	}
 }
 

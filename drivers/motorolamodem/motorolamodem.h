@@ -34,7 +34,7 @@ extern void motorola_sim_exit(void);
 extern void motorola_voicecall_init(void);
 extern void motorola_voicecall_exit(void);
 
-extern guint mot_at_chat_send(GAtChat *chat, const char *cmd,
+extern guint mot_at_chat_send(GMotChat *chat, const char *cmd,
 				const char **valid_resp, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify);
 
@@ -45,21 +45,21 @@ struct ofono_sms;
 
 struct motorola_sim_params {
 	struct ofono_modem *modem;
-	GAtChat *recv;
+	GMotChat *recv;
 };
 
 struct motorola_sms_params {
 	struct ofono_modem *modem;
-	GAtChat *recv;
-	GAtChat *xmit;
+	GMotChat *recv;
+	GMotChat *xmit;
 };
 
 struct motorola_netreg_params {
 	struct ofono_netreg *qmi_netreg;
-	GAtChat *recv;
+	GMotChat *recv;
 };
 
 struct motorola_netmon_params {
 	struct ofono_modem *modem;
-	GAtChat *recv;
+	GMotChat *recv;
 };

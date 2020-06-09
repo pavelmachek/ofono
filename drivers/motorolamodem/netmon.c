@@ -39,6 +39,7 @@
 #include "gatresult.h"
 #include "util.h"
 
+#include "motchat.h"
 #include "motorolamodem.h"
 
 struct netmon_data {
