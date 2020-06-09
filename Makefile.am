@@ -521,9 +521,10 @@ builtin_sources += drivers/motorolamodem/motorolamodem.c \
 			drivers/motorolamodem/motorolamodem.h \
 			drivers/motorolamodem/network-registration.c \
 			drivers/motorolamodem/netmon.c \
-			drivers/motorolamodem/sim.c \
 			drivers/motorolamodem/voicecall.c \
-			drivers/motorolamodem/sms.c
+			drivers/motorolamodem/sim.c \
+			drivers/motorolamodem/sms.c \
+			drivers/motorolamodem/motchat.c
 endif
 
 builtin_modules += g1
