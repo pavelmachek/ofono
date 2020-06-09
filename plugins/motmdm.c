@@ -340,7 +340,7 @@ static int motmdm_open_device(struct ofono_modem *modem, const char *device,
 
 	DBG("device=%s", device);
 
-	channel = g_mot_tty_open(device, NULL);
+	channel = g_at_tty_open(device, NULL);
 	if (channel == NULL)
 		return -EIO;
 
@@ -371,7 +371,7 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 			ofono_warn("Could not open dlc%i", i);
 			continue;
 		}
-
+#if 0
 		switch(i) {
 		case DLC_VOICE:
 			g_mot_chat_add_delimiter(*chat, ":");
@@ -393,7 +393,7 @@ static int motmdm_open_dlc_devices(struct ofono_modem *modem)
 		default:
 			break;
 		}
-
+#endif
 		found++;
 	}
 

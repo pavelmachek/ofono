@@ -98,9 +98,9 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 
 	DBG("");
 
-	g_mot_result_iter_init(&iter, result);
+	g_at_result_iter_init(&iter, result);
 
-	if (!g_mot_result_iter_next(&iter, "~+GCMT="))
+	if (!g_at_result_iter_next(&iter, "~+GCMT="))
 		return;
 
 	if (mot_qmi_trigger_events(data->modem) > 0) {
@@ -118,9 +118,9 @@ static void status_notify(GAtResult *result, gpointer user_data)
 
 	DBG("");
 
-	g_mot_result_iter_init(&iter, result);
+	g_at_result_iter_init(&iter, result);
 
-	if (!g_mot_result_iter_next(&iter, "~+GSSR="))
+	if (!g_at_result_iter_next(&iter, "~+GSSR="))
 		return;
 
 	mot_qmi_trigger_events(data->modem);

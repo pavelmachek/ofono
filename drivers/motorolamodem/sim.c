@@ -54,9 +54,9 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 
 	DBG("");
 
-	g_mot_result_iter_init(&iter, result);
+	g_at_result_iter_init(&iter, result);
 
-	if (!g_mot_result_iter_next(&iter, "~+MSIM="))
+	if (!g_at_result_iter_next(&iter, "~+MSIM="))
 		return;
 
 	mot_qmi_trigger_events(data->modem);
