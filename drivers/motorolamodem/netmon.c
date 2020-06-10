@@ -44,7 +44,7 @@
 
 struct netmon_data {
 	struct ofono_modem *modem;
-	GAtChat *recv;
+	GMotChat *recv;
 };
 
 static void receive_notify(GAtResult *result, gpointer user_data)
@@ -75,9 +75,9 @@ static int motorola_netmon_probe(struct ofono_netmon *netmon,
 	if (data == NULL)
 		return -ENOMEM;
 	data->modem = param->modem;
-	data->recv = g_at_chat_clone(param->recv);
+	data->recv = g_mot_chat_clone(param->recv);
 	ofono_netmon_set_data(netmon, data);
-	g_at_chat_register(data->recv, "~+CREG=", receive_notify,
+	g_mot_chat_register(data->recv, "~+CREG=", receive_notify,
 						TRUE, netmon, NULL);
 
 	return 0;
