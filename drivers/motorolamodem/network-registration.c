@@ -33,14 +33,13 @@
 
 #include "util.h"
 
-#include "gatchat.h"
 #include "gatresult.h"
 
 #include "motchat.h"
 #include "motorolamodem.h"
 
 struct netreg_data {
-	GAtChat *recv;	/* dlc for unsolicited messages */
+	GMotChat *recv;	/* dlc for unsolicited messages */
 	struct ofono_netreg *qmi_netreg;
 };
 
@@ -94,7 +93,7 @@ static int motorola_netreg_probe(struct ofono_netreg *netreg,
 	data->recv = g_mot_chat_clone(param->recv);
 	data->qmi_netreg = param->qmi_netreg;
 	ofono_netreg_set_data(netreg, data);
-	g_at_chat_register(data->recv, "~+RSSI=", receive_notify,
+	g_mot_chat_register(data->recv, "~+RSSI=", receive_notify,
 				FALSE, netreg, NULL);
 
 	return 0;
