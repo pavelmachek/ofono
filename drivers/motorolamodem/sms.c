@@ -96,6 +96,7 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 	struct sms_data *data = ofono_sms_get_data(sms);
 	GAtResultIter iter;
 
+	printf("receive_notify:\n");
 	DBG("");
 
 	g_at_result_iter_init(&iter, result);
@@ -103,11 +104,13 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 	if (!g_at_result_iter_next(&iter, "~+GCMT="))
 		return;
 
+	printf("qmi trigger:\n");
 	if (mot_qmi_trigger_events(data->modem) > 0) {
 		DBG("Kicking SMS channel before acking");
 		mot_at_chat_send(data->xmit, "AT+GCNMA=?", gcms_prefix,
 							ack_sms_cb, data, NULL);
 	}
+	printf("all done?\n");
 }
 
 static void status_notify(GAtResult *result, gpointer user_data)
@@ -139,8 +142,8 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 	data->xmit = g_mot_chat_clone(param->xmit);
 	data->vendor = vendor;
 	ofono_sms_set_data(sms, data);
-	g_mot_chat_register(data->recv, "~+GCMT=", receive_notify, TRUE, sms, NULL);
-	g_mot_chat_register(data->recv, "~+GSSR=", status_notify, TRUE, sms, NULL);
+	g_mot_chat_register(data->recv, "~+GCMT=", receive_notify, FALSE, sms, NULL);
+	g_mot_chat_register(data->recv, "~+GSSR=", status_notify, FALSE, sms, NULL);
 
 	return 0;
 }
