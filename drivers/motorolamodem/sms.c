@@ -96,7 +96,6 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 	struct sms_data *data = ofono_sms_get_data(sms);
 	GAtResultIter iter;
 
-	printf("receive_notify:\n");
 	DBG("");
 
 	g_at_result_iter_init(&iter, result);
@@ -104,7 +103,6 @@ static void receive_notify(GAtResult *result, gpointer user_data)
 	if (!g_at_result_iter_next(&iter, "~+GCMT="))
 		return;
 
-	printf("qmi trigger:\n");
 	if (mot_qmi_trigger_events(data->modem) > 0) {
 		DBG("Kicking SMS channel before acking");
 		mot_at_chat_send(data->xmit, "AT+GCNMA=?", gcms_prefix,
