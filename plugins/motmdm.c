@@ -67,7 +67,6 @@ enum motmdm_chat {
 	DLC_SMS_RECV,
 	DLC_SMS_XMIT,
 	DLC_SIM,
-	USB_AT,
 	NUM_CHAT,
 };
 
@@ -441,12 +440,6 @@ static int motmdm_enable(struct ofono_modem *modem)
 	qmi_device_set_close_on_unref(data->device, true);
 
 	qmi_device_discover(data->device, discover_cb, modem, NULL);
-
-	err = motmdm_open_device(modem,
-			ofono_modem_get_string(modem, "Modem"),
-				USB_AT);
-	if (err < 0)
-		ofono_warn("Could not open AT modem");
 
 	err = motmdm_open_dlc_devices(modem);
 	if (err < NUM_DLC)
