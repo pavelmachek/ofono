@@ -78,7 +78,7 @@ static int motorola_netmon_probe(struct ofono_netmon *netmon,
 	data->recv = g_mot_chat_clone(param->recv);
 	ofono_netmon_set_data(netmon, data);
 	g_mot_chat_register(data->recv, "~+CREG=", receive_notify,
-						TRUE, netmon, NULL);
+						FALSE, netmon, NULL);
 
 	return 0;
 }
