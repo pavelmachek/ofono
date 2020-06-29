@@ -41,6 +41,7 @@
 #include "motchat.h"
 #include "gatresult.h"
 
+#include "drivers/atmodem/atutil.h"
 #include "motorolamodem.h"
 
 static const char *none_prefix[] = { NULL };
@@ -233,8 +234,8 @@ static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 
 	ofono_sms_set_data(sms, data);
 
-	g_mot_chat_register(data->chat, "U0000~+GCMT", insms_notify, FALSE, sms, NULL);
-	g_mot_chat_register(data->send_chat, "U0000+GCMGS", motorola_cmgs_cb, FALSE, sms, NULL);
+	g_mot_chat_register(data->chat, "~+GCMT", insms_notify, FALSE, sms, NULL);
+	g_mot_chat_register(data->send_chat, "+GCMGS", motorola_cmgs_cb, FALSE, sms, NULL);
 
 	/* List of error codes seems to be at
 
