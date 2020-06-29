@@ -1,10 +1,9 @@
-/*
+/* -*- linux-c -*-
  *
  *  oFono - Open Source Telephony
  *
  *  Copyright (C) 2008-2011  Intel Corporation. All rights reserved.
- *  Copyright (C) 2019  Pavel Machek <pavel@ucw.cz>
- *  Copyright (C) 2020  Tony Lindgren <tony@atomide.com>
+ *  Copyright (C) 2019  Pavel Machek <pavel@ucw.cz>.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -29,120 +28,218 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <glib.h>
+#include <ell/ell.h>
+
 #include <ofono/log.h>
 #include <ofono/modem.h>
 #include <ofono/sms.h>
-
-#include <drivers/atmodem/atutil.h>
-
 #include "smsutil.h"
 #include "util.h"
 
+#include "gatchat.h"
 #include "motchat.h"
 #include "gatresult.h"
 
 #include "motorolamodem.h"
 
-static const char *gcms_prefix[] = { "+GCMS=", NULL };
-static const char *gcnma_prefix[] = { "+GCNMA=", NULL };
+static const char *none_prefix[] = { NULL };
 
 struct sms_data {
-	struct ofono_modem *modem;
-	GMotChat *recv, *xmit;	/* dlc for incoming and outgoing messages */
-	unsigned int vendor;
+	GMotChat *chat, *send_chat;
+
+	struct cb_data *cbd; /* callback data for... FIXME: unused? */
 };
+
+static void motorola_cmgs_cb(GAtResult *result, gpointer user_data)
+{
+  	struct ofono_sms *sms = user_data;
+	struct sms_data *data = ofono_sms_get_data(sms);
+	struct cb_data *cbd = data->cbd;
+	GAtResultIter iter;
+	ofono_sms_submit_cb_t cb = cbd->cb;
+	struct ofono_error error;
+	int mr;
+
+	DBG("");
+	data->cbd = NULL;
+
+	DBG("iter init");
+	g_at_result_iter_init(&iter, result);
+
+	/* FIXME: this needs to be U0000...?! */
+	if (!g_at_result_iter_next(&iter, "+GCMGS="))
+		goto err;
+
+	DBG("next");
+	if (!g_at_result_iter_next_number(&iter, &mr))
+		goto err;
+
+	DBG("get number");
+	DBG("Got MR: %d", mr);
+
+	cb(&error, mr, cbd->data);
+	return;
+
+err:
+	DBG("callback with failure");
+	CALLBACK_WITH_FAILURE(cb, -1, cbd->data);
+}
+
+static void motorola_send_pdu(struct ofono_sms *sms, const unsigned char *pdu,
+			      int pdu_len)
+{
+	struct sms_data *data = ofono_sms_get_data(sms);
+	char buf[512], buf_pdu[512];
+
+	DBG("");
+
+	/*                          AT+GCMGS */
+	snprintf(buf, sizeof(buf), "U0000AT+GCMGS=\r");
+	DBG("CMGS intro is %s", buf);
+	
+	DBG("pdu len %d", pdu_len);
+	encode_hex_own_buf(pdu, pdu_len, 0, buf_pdu);
+	//strcat(buf, buf_pdu+2);
+	strcat(buf_pdu, "\x1a\r");
+	buf_pdu[1] = 'U';
+	//DBG("Complete command is %s", buf);
+
+#if 0
+	g_mot_chat_send(data->send_chat, buf, none_prefix, NULL, data, NULL);
+	g_mot_chat_send(data->send_chat, buf_pdu+2, none_prefix, NULL, data, NULL);
+#else
+	g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
+	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+	g_at_io_write(data->send_chat->parent->io, buf_pdu+1, strlen(buf_pdu)-1);
+	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
+#endif
+	return;
+}
+
+
+static void motorola_cmgs(struct ofono_sms *sms, const unsigned char *pdu,
+			int pdu_len, int tpdu_len, int mms,
+			ofono_sms_submit_cb_t cb, void *user_data)
+{
+	struct sms_data *data = ofono_sms_get_data(sms);
+	struct cb_data *cbd = cb_data_new(cb, user_data);
+
+	if (mms) {
+	  DBG("mms likely not supported");
+	}
+
+	motorola_send_pdu(sms, pdu, pdu_len);
+	data->cbd = cbd;
+	return;
+/*
+	if (g_mot_chat_send(data->send_chat, buf, cmgs_prefix,
+				motorola_cmgs_cb, cbd, g_free) > 0)
+		return;
+*/
+	g_free(cbd);
+
+	CALLBACK_WITH_FAILURE(cb, -1, user_data);
+}
 
 static void at_cnma_cb(gboolean ok, GAtResult *result, gpointer user_data)
 {
-	DBG("");
-
-	if (ok)
-		return;
-
-	ofono_error("CNMA acknowledgement failed: "
+	DBG("at+cnma: we really need this");
+	if (!ok)
+		ofono_error("CNMA acknowledgement failed: "
 				"Further SMS reception is not guaranteed");
 }
 
-/*
- * For acking messages, Android seems to use both AT+CNMA=0,0 and AT+GCNMA=1
- * terminated with '\n' rather than '\r'. Maybe the difference is that
- * AT+GCNMA=1 should be used for GSM and WCDMA while AT+CNMA=0,0 should be
- * used for CDMA networks. Note that the incoming messages are also acked on
- * the recv dlc on Android. However, we can also ack incoming messages on the
- * xmit dlc to avoid mixing PDUs and commands on the recv dlc. Let's also
- * wake the dlc before as otherwise we may not get any response from the
- * modem.
- *
- * Returns "+GCNMA=OK" on success and "+GCMS=305" if nothing to ack.
- */
-static void ack_sms_cb(gboolean ok, GAtResult *result, gpointer user_data)
+static inline void motorola_ack_delivery(struct ofono_sms *sms)
 {
-	struct sms_data *data = user_data;
+	struct sms_data *data = ofono_sms_get_data(sms);
+	char buf[256];
 
 	DBG("");
+	snprintf(buf, sizeof(buf), "U0000AT+GCNMA=1");
+	/* GCNMA=1 on _outsms_ may be doing the trick?
+	   Tony does GCNMA on insms. (and suggest CNMA=0,0; sometimes) */
 
-	mot_at_chat_send(data->xmit, "AT+GCNMA=1", gcnma_prefix,
-						at_cnma_cb, NULL, NULL);
+	strcat(buf, "\r");
+	g_at_io_write(data->send_chat->parent->io, buf, strlen(buf));
+	g_io_channel_flush(data->send_chat->parent->io->channel, NULL);
 }
 
-/*
- * Incoming message handling is similar to at_cmgl_notify(). We may need
- * a separate handler for ofono_sms_status_notify() too as we don't seem
- * to have that information with GCMT.
- */
-static void receive_notify(GAtResult *result, gpointer user_data)
+static void got_hex_pdu(struct ofono_sms *sms, const char *hexpdu)
 {
-	struct ofono_sms *sms = user_data;
-	struct sms_data *data = ofono_sms_get_data(sms);
-	GAtResultIter iter;
+	long pdu_len;
+	int tpdu_len;
+  	unsigned char pdu[176];
 
-	DBG("");
-
-	g_at_result_iter_init(&iter, result);
-
-	if (!g_at_result_iter_next(&iter, "~+GCMT="))
+	if (hexpdu[0] == '~') {
+		printf("PDU will be on next line?\n");
 		return;
-
-	if (mot_qmi_trigger_events(data->modem) > 0) {
-		DBG("Kicking SMS channel before acking");
-		mot_at_chat_send(data->xmit, "AT+GCNMA=?", gcms_prefix,
-							ack_sms_cb, data, NULL);
 	}
-	printf("all done?\n");
+
+	if (strlen(hexpdu) > sizeof(pdu) * 2) {
+		ofono_error("Bad PDU length in CDS notification");
+		return;
+	}
+
+	/* Decode pdu and notify about new SMS status report */
+	decode_hex_own_buf(hexpdu, -1, &pdu_len, 0, pdu);
+	tpdu_len = pdu_len - pdu[0] - 1; /* Matches my guess, and matches mbimodem */
+	DBG("Got new Status-Report PDU via CDS: %s, %d", hexpdu, tpdu_len);
+	ofono_sms_deliver_notify(sms, pdu, pdu_len, tpdu_len);
 }
 
-static void status_notify(GAtResult *result, gpointer user_data)
+static void insms_notify(GAtResult *result, gpointer user_data)
 {
 	struct ofono_sms *sms = user_data;
-	struct sms_data *data = ofono_sms_get_data(sms);
-	GAtResultIter iter;
 
-	DBG("");
+	GAtResultIter iter;
+	const char *line, *pdu;
 
 	g_at_result_iter_init(&iter, result);
-
-	if (!g_at_result_iter_next(&iter, "~+GSSR="))
+	/* g_at_result_iter_next_hexstring ? */
+	if (!g_at_result_iter_next(&iter, ""))
 		return;
 
-	mot_qmi_trigger_events(data->modem);
+	line = g_at_result_iter_raw_line(&iter);
+	DBG("insms notify:\n %s\n", line);
+
+	pdu = strchr(line, '\r');
+	if (!pdu) {
+		DBG("Do not have pdu?!\n");
+		return;
+	}
+	pdu += 1;
+	DBG("insms notify pdu:\n %s\n", pdu);
+
+	got_hex_pdu(sms, pdu);
+
+	DBG("Acknowledging sms delivery\n");
+	if (1)
+		motorola_ack_delivery(sms);
 }
 
 static int motorola_sms_probe(struct ofono_sms *sms, unsigned int vendor,
 				void *user)
 {
-	struct motorola_sms_params *param = user;
+  	struct motorola_sms_params *param = user;
 	struct sms_data *data;
 
-	DBG("");
-	data = g_new0(struct sms_data, 1);
-	data->modem = param->modem;
-	data->recv = g_mot_chat_clone(param->recv);
-	data->xmit = g_mot_chat_clone(param->xmit);
-	data->vendor = vendor;
-	ofono_sms_set_data(sms, data);
-	g_mot_chat_register(data->recv, "~+GCMT=", receive_notify, FALSE, sms, NULL);
-	g_mot_chat_register(data->recv, "~+GSSR=", status_notify, FALSE, sms, NULL);
+	printf("while is DBG() not printed?!\n"); fflush(stdout);
+	DBG("**************************** this should be called");
 
+	data = g_new0(struct sms_data, 1);
+	data->chat = g_mot_chat_clone(param->recv);
+	data->send_chat = g_mot_chat_clone(param->xmit);
+
+	ofono_sms_set_data(sms, data);
+
+	g_mot_chat_register(data->chat, "U0000~+GCMT", insms_notify, FALSE, sms, NULL);
+	g_mot_chat_register(data->send_chat, "U0000+GCMGS", motorola_cmgs_cb, FALSE, sms, NULL);
+
+	/* List of error codes seems to be at
+
+	   https://www.developershome.com/sms/resultCodes2.asp#16.2.1.1
+	 */
 	return 0;
 }
 
@@ -150,19 +247,18 @@ static void motorola_sms_remove(struct ofono_sms *sms)
 {
 	struct sms_data *data = ofono_sms_get_data(sms);
 
-	DBG("");
-	g_mot_chat_unref(data->recv);
-	g_mot_chat_unref(data->xmit);
+	g_mot_chat_unref(data->chat);
+	g_mot_chat_unref(data->send_chat);
 	g_free(data);
 
 	ofono_sms_set_data(sms, NULL);
 }
 
-/* See qmimodem for sending messages, submit() is currently not needed */
 static const struct ofono_sms_driver driver = {
 	.name		= "motorolamodem",
 	.probe		= motorola_sms_probe,
 	.remove		= motorola_sms_remove,
+	.submit		= motorola_cmgs,
 };
 
 void motorola_sms_init(void)
