@@ -48,7 +48,7 @@ guint mot_at_chat_send(GMotChat *chat, const char *cmd,
 	id += (now.tv_usec / 1000) / 10;
 	snprintf(buf, sizeof(buf), "U%04u%s", id, cmd);
 
-	return g_at_chat_send(chat, buf, valid_resp, func, user_data, notify);
+	return g_mot_chat_send(chat, buf, valid_resp, func, user_data, notify);
 }
 
 static int motorolamodem_init(void)
