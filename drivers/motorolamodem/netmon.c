@@ -88,7 +88,7 @@ static void motorola_netmon_remove(struct ofono_netmon *netmon)
 	struct netmon_data *data = ofono_netmon_get_data(netmon);
 
 	ofono_netmon_set_data(netmon, NULL);
-	g_at_chat_unref(data->recv);
+	g_mot_chat_unref(data->recv);
 	g_free(data);
 }
 
