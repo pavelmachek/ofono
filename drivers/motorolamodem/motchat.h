@@ -126,25 +126,6 @@ guint g_mot_chat_send_listing(GMotChat *chat, const char *cmd,
 				GAtNotifyFunc listing, GAtResultFunc func,
 				gpointer user_data, GDestroyNotify notify);
 
-/*!
- * Same as g_mot_chat_send_listing except every response line in valid_resp
- * is expected to be followed by a PDU.  The listing function will be called
- * with the intermediate response and the following PDU line.
- *
- * This is useful for PDU listing commands like the +CMGL
- */
-guint g_mot_chat_send_pdu_listing(GMotChat *chat, const char *cmd,
-				const char **valid_resp,
-				GAtNotifyFunc listing, GAtResultFunc func,
-				gpointer user_data, GDestroyNotify notify);
-
-/*!
- * Same as g_mot_chat_send except parser will know to expect short prompt syntax
- * used with +CPOS.
- */
-guint g_mot_chat_send_and_expect_short_prompt(GMotChat *chat, const char *cmd,
-				const char **valid_resp, GAtResultFunc func,
-				gpointer user_data, GDestroyNotify notify);
 
 gboolean g_mot_chat_cancel(GMotChat *chat, guint id);
 gboolean g_mot_chat_cancel_all(GMotChat *chat);
@@ -157,14 +138,6 @@ guint g_mot_chat_register(GMotChat *chat, const char *prefix,
 
 gboolean g_mot_chat_unregister(GMotChat *chat, guint id);
 gboolean g_mot_chat_unregister_all(GMotChat *chat);
-
-gboolean g_mot_chat_set_wakeup_command(GMotChat *chat, const char *cmd,
-					guint timeout, guint msec);
-
-void g_mot_chat_add_terminator(GMotChat *chat, char *terminator,
-				int len, gboolean success);
-void g_mot_chat_blacklist_terminator(GMotChat *chat,
-						GMotChatTerminator terminator);
 
 struct _GMotChat {
 	gint ref_count;
@@ -198,8 +171,6 @@ struct mot_chat {
 	gboolean destroyed;			/* Re-entrancy guard */
 	gboolean in_read_handler;		/* Re-entrancy guard */
 	gboolean in_notify;
-	GSList *terminator_list;		/* Non-standard terminator */
-	guint16 terminator_blacklist;		/* Blacklisted terinators */
 };
 
 #ifdef __cplusplus

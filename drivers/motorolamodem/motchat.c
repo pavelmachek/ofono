@@ -640,7 +640,7 @@ static void chat_wakeup_writer(struct mot_chat *chat)
 	g_at_io_set_write_handler(chat->io, can_write_data, chat);
 }
 
-static void mot_chat_suspend(struct mot_chat *chat)
+static void mot_chat_suspend(struct mot_chat *chat) /* remove? */
 {
 	chat->suspended = TRUE;
 
@@ -649,7 +649,7 @@ static void mot_chat_suspend(struct mot_chat *chat)
 	g_at_io_set_debug(chat->io, NULL, NULL);
 }
 
-static void mot_chat_resume(struct mot_chat *chat)
+static void mot_chat_resume(struct mot_chat *chat) /* remove? */
 {
 	chat->suspended = FALSE;
 
