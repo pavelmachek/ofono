@@ -4,6 +4,7 @@
  *
  *  Copyright (C) 2008-2011  Intel Corporation. All rights reserved.
  *  Copyright (C) 2009  Collabora Ltd. All rights reserved.
+ *  Copyright (C) 2020  Pavel Machek. All rights reserved.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -211,5 +212,13 @@ static void droid_exit(void)
 	ofono_modem_driver_unregister(&droid_driver);
 }
 
-OFONO_PLUGIN_DEFINE(droid, "HTC DROID modem driver", VERSION,
+/* Modem in Motorola Droid has few different interfaces:
+ * -- gsmmux over serial -- using very non-standard commands
+ * -- QMI -- unfortunately not usable without gsmmux
+ * -- standard AT over ttyUSB4 -- unfortunately quite broken
+ *
+ * This driver is for the standard AT commands.
+ */
+
+OFONO_PLUGIN_DEFINE(droid, "Motorola Droid modem driver", VERSION,
 			OFONO_PLUGIN_PRIORITY_DEFAULT, droid_init, droid_exit)
