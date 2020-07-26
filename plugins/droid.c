@@ -182,9 +182,11 @@ static void droid_post_sim(struct ofono_modem *modem)
 	ofono_call_forwarding_create(modem, 0, "atmodem", chat);
 	ofono_call_settings_create(modem, 0, "atmodem", chat);
 	ofono_netreg_create(modem, 0, "atmodem", chat);
-	ofono_call_meter_create(modem, 0, "atmodem", chat);
+	/*
+	 * Droid 4 modem has problems with AT+CPUC?, avoid call meter for now.
+	 */
 	ofono_call_barring_create(modem, 0, "atmodem", chat);
-	ofono_sms_create(modem, OFONO_VENDOR_QUALCOMM_MSM, "atmodem", chat);
+	ofono_sms_create(modem, OFONO_VENDOR_DROID, "atmodem", chat);
 	ofono_phonebook_create(modem, 0, "atmodem", chat);
 
 	mw = ofono_message_waiting_create(modem);
