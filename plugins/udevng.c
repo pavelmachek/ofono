@@ -1440,7 +1440,6 @@ static struct {
 	{ "cinterion",	setup_serial_modem	},
 	{ "nokiacdma",	setup_serial_modem	},
 	{ "sim900",	setup_serial_modem	},
-	//	{ "droid",	setup_serial_modem	},
 	{ "wavecom",	setup_wavecom		},
 	{ "tc65",	setup_tc65		},
 	{ "ehs6",	setup_ehs6		},
@@ -1792,6 +1791,8 @@ static struct {
 	{ "mbm",	"cdc_ether",	"0930"		},
 	{ "mbm",	"cdc_ncm",	"0930"		},
 	{ "hso",	"hso"				},
+	{ "gobi",	"qmi_wwan"			},
+	{ "gobi",	"qcserial"			},
 	{ "sierra",	"qmi_wwan",	"1199"		},
 	{ "sierra",	"qcserial",	"1199"		},
 	{ "sierra",	"sierra"			},
@@ -1995,14 +1996,12 @@ static void check_device(struct udev_device *device)
 			return;
 	}
 
-#if 1
 	if ((g_str_equal(bus, "usb") == TRUE) ||
 			(g_str_equal(bus, "usbmisc") == TRUE))
 		check_usb_device(device);
 	else if (g_str_equal(bus, "pci") == TRUE)
 		check_pci_device(device);
 	else
-#endif
 		add_serial_device(device);
 
 }
@@ -2031,7 +2030,6 @@ static gboolean create_modem(gpointer key, gpointer value, gpointer user_data)
 		if (g_str_equal(driver_list[i].name, modem->driver) == FALSE)
 			continue;
 
-		DBG("Attempting modem setup, driver %s", modem->driver);
 		if (driver_list[i].setup(modem) == TRUE) {
 			ofono_modem_set_string(modem->modem, "SystemPath",
 								syspath);
@@ -2042,10 +2040,8 @@ static gboolean create_modem(gpointer key, gpointer value, gpointer user_data)
 
 			return FALSE;
 		}
-		DBG("Modem setup failed, driver %s", modem->driver);		
 	}
 
-	DBG("Modem setup failed or not in driver_list?");
 	return TRUE;
 }
 
