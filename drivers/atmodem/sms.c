@@ -350,7 +350,7 @@ static inline void at_ack_delivery(struct ofono_sms *sms)
 		}
 	} else {
 		/* Should be a safe fallback */
-		snprintf(buf, sizeof(buf), "AT");
+		snprintf(buf, sizeof(buf), "AT+CNMA=0");
 	}
 
 	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
@@ -465,8 +465,6 @@ static void at_cmt_notify(GAtResult *result, gpointer user_data)
 
 	if (data->vendor != OFONO_VENDOR_SIMCOM)
 		at_ack_delivery(sms);
-	return;
-
 	return;
 
 err:
@@ -1308,9 +1306,6 @@ static void at_csms_query_cb(gboolean ok, GAtResult *result,
 				csms = 1;
 		break;
 	}
-
-	printf("Forcing cnma to false\n");
-	//cnma_supported = FALSE;
 
 	DBG("CSMS query parsed successfully");
 
