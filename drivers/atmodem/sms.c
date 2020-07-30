@@ -349,8 +349,15 @@ static inline void at_ack_delivery(struct ofono_sms *sms)
 			break;
 		}
 	} else {
-		/* Should be a safe fallback */
-		snprintf(buf, sizeof(buf), "AT+CNMA=0");
+		switch (data->vendor) {
+		case OFONO_VENDOR_DROID:
+			snprintf(buf, sizeof(buf), "AT");
+			break;
+		default:
+			/* Should be a safe fallback */
+			snprintf(buf, sizeof(buf), "AT+CNMA=0");
+			break;
+		}
 	}
 
 	g_at_chat_send(data->chat, buf, none_prefix, at_cnma_cb, NULL, NULL);
