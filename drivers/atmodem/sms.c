@@ -1315,6 +1315,7 @@ static void at_csms_query_cb(gboolean ok, GAtResult *result,
 	}
 
 	DBG("CSMS query parsed successfully");
+	csms = 0;
 
 out:
 	snprintf(buf, sizeof(buf), "AT+CSMS=%d", csms);
