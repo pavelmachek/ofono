@@ -714,7 +714,7 @@ static gboolean setup_telitqmi(struct modem_info *modem)
 
 static gboolean setup_droid(struct modem_info *modem)
 {
-  	const char *qmi = NULL, *net = NULL, *at = NULL;
+	const char *at = NULL;
 	GSList *list;
 
 	DBG("%s", modem->syspath);
@@ -733,8 +733,6 @@ static gboolean setup_droid(struct modem_info *modem)
 
 	if (at == NULL)
 		return FALSE;
-
-	DBG("at=%s qmi=%s net=%s", at, qmi, net);
 
 	ofono_modem_set_string(modem->modem, "Device", at);
 	ofono_modem_set_driver(modem->modem, "droid");

@@ -871,7 +871,7 @@ static gboolean build_cnmi_string(char *buf, int *cnmi_opts,
 		mode = "1";
 	if (data->vendor == OFONO_VENDOR_DROID)
 		mode = "2";
-	
+
 	/* Prefer to deliver SMS via +CMT if CNMA is supported */
 	if (!append_cnmi_element(buf, &len, cnmi_opts[1], mode, FALSE))
 		return FALSE;
@@ -1306,7 +1306,6 @@ static void at_csms_query_cb(gboolean ok, GAtResult *result,
 
 	switch (data->vendor) {
 	case OFONO_VENDOR_DROID:
-	  	csms = 0;
 		break;
 	case OFONO_VENDOR_QUECTEL_SERIAL:
 		g_at_result_iter_next_number(&iter, &status_min);
