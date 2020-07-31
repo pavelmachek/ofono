@@ -866,9 +866,14 @@ static gboolean build_cnmi_string(char *buf, int *cnmi_opts,
 	if (!append_cnmi_element(buf, &len, cnmi_opts[0], mode, FALSE))
 		return FALSE;
 
+	mode = "21";
+	if (!data->cnma_enabled)
+		mode = "1";
+	if (data->vendor == OFONO_VENDOR_DROID)
+		mode = "2";
+	
 	/* Prefer to deliver SMS via +CMT if CNMA is supported */
-	if (!append_cnmi_element(buf, &len, cnmi_opts[1],
-					data->cnma_enabled ? "21" : "21", FALSE))
+	if (!append_cnmi_element(buf, &len, cnmi_opts[1], mode, FALSE))
 		return FALSE;
 
 	switch (data->vendor) {
