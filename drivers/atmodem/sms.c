@@ -1300,6 +1300,9 @@ static void at_csms_query_cb(gboolean ok, GAtResult *result,
 		goto out;
 
 	switch (data->vendor) {
+	case OFONO_VENDOR_DROID:
+	  	csms = 0;
+		break;
 	case OFONO_VENDOR_QUECTEL_SERIAL:
 		g_at_result_iter_next_number(&iter, &status_min);
 		g_at_result_iter_next_number(&iter, &status_max);
@@ -1315,7 +1318,6 @@ static void at_csms_query_cb(gboolean ok, GAtResult *result,
 	}
 
 	DBG("CSMS query parsed successfully");
-	csms = 0;
 
 out:
 	snprintf(buf, sizeof(buf), "AT+CSMS=%d", csms);
