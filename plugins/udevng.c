@@ -387,6 +387,49 @@ done:
 	return TRUE;
 }
 
+static gboolean setup_motmdm(struct modem_info *modem)
+{
+	const char *qmi = NULL, *net = NULL, *diag = NULL, *mdm = NULL;
+	GSList *list;
+
+	DBG("%s", modem->syspath);
+
+	for (list = modem->devices; list; list = list->next) {
+		struct device_info *info = list->data;
+
+		DBG("%s %s %s %s %s %s", info->devnode, info->interface,
+						info->number, info->label,
+						info->sysattr, info->subsystem);
+
+		if (g_strcmp0(info->subsystem, "usbmisc") == 0)
+			qmi = info->devnode;
+		else if (g_strcmp0(info->subsystem, "net") == 0)
+			net = info->devnode;
+		else if (g_strcmp0(info->subsystem, "tty") == 0) {
+			if (g_strcmp0(info->interface, "255/255/255") == 0) {
+				if (g_strcmp0(info->number, "00") == 0)
+					diag = info->devnode;
+				else if (g_strcmp0(info->number, "04") == 0)
+					mdm = info->devnode;
+			}
+		}
+	}
+
+	DBG("qmi=%s net=%s diag=%s mdm=%s", qmi, net, diag, mdm);
+
+	if (qmi == NULL || mdm == NULL || net == NULL)
+		return FALSE;
+
+	ofono_modem_set_string(modem->modem, "Device", qmi);
+	ofono_modem_set_string(modem->modem, "Modem", mdm);
+	ofono_modem_set_string(modem->modem, "Diag", diag);
+	ofono_modem_set_string(modem->modem, "NetworkInterface", net);
+
+	ofono_modem_set_driver(modem->modem, "gobi");
+
+	return TRUE;
+}
+
 static gboolean setup_speedup(struct modem_info *modem)
 {
 	const char *aux = NULL, *mdm = NULL;
@@ -1381,6 +1424,7 @@ static struct {
 	{ "gobi",	setup_gobi	},
 	{ "sierra",	setup_sierra	},
 	{ "huawei",	setup_huawei	},
+	{ "motmdm",	setup_motmdm	},
 	{ "speedupcdma",setup_speedup	},
 	{ "speedup",	setup_speedup	},
 	{ "linktop",	setup_linktop	},
@@ -1771,6 +1815,8 @@ static struct {
 	{ "huawei",	"cdc_ether",	"12d1"		},
 	{ "huawei",	"qmi_wwan",	"12d1"		},
 	{ "huawei",	"option",	"12d1"		},
+	{ "motmdm",	"qmi_wwan",	"22b8", "2a70"	},
+	{ "motmdm",	"option",	"22b8", "2a70"	},
 	{ "speedupcdma","option",	"1c9e", "9e00"	},
 	{ "speedup",	"option",	"1c9e"		},
 	{ "speedup",	"option",	"2020"		},
@@ -1785,8 +1831,6 @@ static struct {
 	{ "telit",	"cdc_acm",	"1bc7", "0021"	},
 	{ "telitqmi",	"qmi_wwan",	"1bc7", "1201"	},
 	{ "telitqmi",	"option",	"1bc7", "1201"	},
-	{ "gobi",       "qmi_wwan",     "22b8", "2a70"  },
-	{ "gobi",       "option",       "22b8", "2a70"  },
 	{ "nokia",	"option",	"0421", "060e"	},
 	{ "nokia",	"option",	"0421", "0623"	},
 	{ "samsung",	"option",	"04e8", "6889"	},
