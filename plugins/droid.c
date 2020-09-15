@@ -114,6 +114,7 @@ static int droid_enable(struct ofono_modem *modem)
 	if (chat == NULL)
 		return -EIO;
 
+	/* FIXME: use at_util_open_device */
 	if (getenv("OFONO_AT_DEBUG"))
 		g_at_chat_set_debug(chat, droid_debug, "");
 
