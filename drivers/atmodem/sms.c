@@ -349,6 +349,9 @@ static inline void at_ack_delivery(struct ofono_sms *sms)
 			break;
 		}
 	} else {
+	  /* FIXME: this should never happen according to review comments */
+	  printf("Impossible happened\n");
+	  exit(1);
 		switch (data->vendor) {
 		case OFONO_VENDOR_DROID:
 			snprintf(buf, sizeof(buf), "AT");
@@ -1255,11 +1258,12 @@ static void at_csms_status_cb(gboolean ok, GAtResult *result,
 		if (!g_at_result_iter_next_number(&iter, &mo))
 			goto out;
 
-		if (service == 1 || service == 128)
-			if (data->vendor != OFONO_VENDOR_DROID) {
+		if (service == 1 || service == 128) {
+		  printf("service is 1 or 128\n");
+		  exit(1);
+			if (data->vendor != OFONO_VENDOR_DROID)
 				data->cnma_enabled = TRUE;
-			}
-
+		}
 		if (mt == 1 && mo == 1)
 			supported = TRUE;
 	}
